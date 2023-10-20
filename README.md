@@ -74,8 +74,19 @@ This event is fired from the context of the telemetry data background task and t
 
 There is also a useful dictionary at `Data.TelemetryDataProperties` that describes what each of the available telemetry data variables are, and their properties.
 
+There is an `BroadcastMessage` method you can use to send messages to the iRacing simulator. It is used exactly the same way as in the offical iRacing SDK.
+```
+var replayFrameNumber = 123456;
+
+irsdkSharper.BroadcastMessage( IRacingSdkEnum.BroadcastMsg.ReplaySetPlayPosition, IRacingSdkEnum.RpyPosMode.Begin, replayFrameNumber >> 16, replayFrameNumber & 0xFFFF );
+```
+
 # Useful tips
 There is an `Data.FramesDropped` property that you can check to see if we are dropping telemetry data frames. Usually just a couple of frames are dropped at the beginning when the iRacing simulator starts up. Ideally there should be no frames dropped after that point.
+
+# Test project
+There is a test project that I have created that demonstrates the use of IRSDKSharper. This test project displays every telemetry and session information data in real time. The test project can be found over here:
+https://github.com/mherbold/IRSDKSharperTest
 
 # Differences to IRSDKSharp
 1. The connection loop is never terminated in IRSDKSharp even though it is not needed any more after the iRacing simulator starts up.
@@ -88,3 +99,9 @@ Unfortunately, the iRacing SDK has some bugs and errors. Most of these bugs are 
 1. The CarsLeftRight telemetry data is incorrectly declared to be a bit field by the iRacing simulator. IRSDKSharper corrects this property to be an integer.
 2. The PaceFlags telemetry data is incorrectly declared to be an integer by the iRacing simulator. IRSDKSharper corrects this property to be a bit field.
 3. The iRacing simulator session information YAML data is improperly formatted and will crash deserializers under certain conditions. IRSDKSharper patches the YAML so it is properly formatted.
+
+# Roadmap
+1. Add helper broadcast message functions so we don't have to deal with bit shuffling weirdness.
+2. Add automatic recording / playback of telemetry data that is missing in iRacing's replay files.
+3. Add useful  additional telemetry derived from normalization / corrections to iRacing telemetry and session information data.
+
