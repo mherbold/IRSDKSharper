@@ -21,8 +21,8 @@ namespace HerboldRacing
 		public event Action<Exception>? OnException = null;
 		public event Action? OnConnected = null;
 		public event Action? OnDisconnected = null;
-		public event Action? OnSessionInfo = null;
 		public event Action? OnTelemetryData = null;
+		public event Action? OnSessionInfo = null;
 
 		private bool stopNow = false;
 
@@ -33,7 +33,6 @@ namespace HerboldRacing
 		private MemoryMappedFile? memoryMappedFile = null;
 		private MemoryMappedViewAccessor? memoryMappedViewAccessor = null;
 
-		private IntPtr? hEvent = null;
 		private AutoResetEvent? simulatorAutoResetEvent = null;
 		private AutoResetEvent? sessionInfoAutoResetEvent = null;
 
@@ -109,13 +108,6 @@ namespace HerboldRacing
 			sessionInfoAutoResetEvent = null;
 			simulatorAutoResetEvent = null;
 
-			if ( hEvent != null )
-			{
-				Windows.CloseHandle( (IntPtr) hEvent );
-
-				hEvent = null;
-			}
-
 			memoryMappedViewAccessor = null;
 			memoryMappedFile = null;
 
@@ -125,11 +117,113 @@ namespace HerboldRacing
 			Debug.WriteLine( "IRSDKSharper stopped." );
 		}
 
-		public void BroadcastMessage( IRacingSdkEnum.BroadcastMsg msg, int var1, int var2, int var3 )
+		#region simulator remote control
+
+		public void CamSwitchPos( IRacingSdkEnum.CamSwitchMode camSwitchMode, int carPosition, int group, int camera )
+		{
+			if ( camSwitchMode != IRacingSdkEnum.CamSwitchMode.FocusAtDriver )
+			{
+				carPosition = (int) camSwitchMode;
+			}
+
+			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.CamSwitchPos, (short) carPosition, (short) group, (short) camera );
+		}
+
+		public void CamSwitchNum( IRacingSdkEnum.CamSwitchMode camSwitchMode, int carNumberRaw, int group, int camera )
+		{
+			if ( camSwitchMode != IRacingSdkEnum.CamSwitchMode.FocusAtDriver )
+			{
+				carNumberRaw = (int) camSwitchMode;
+			}
+
+			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.CamSwitchNum, (short) carNumberRaw, (short) group, (short) camera );
+		}
+
+		public void CamSetState( IRacingSdkEnum.CameraState cameraState )
+		{
+			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.CamSetState, (short) cameraState );
+		}
+
+		public void ReplaySetPlaySpeed( int speed, bool slowMotion )
+		{
+			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.ReplaySetPlaySpeed, (short) speed, slowMotion ? 1 : 0 );
+		}
+
+		public void ReplaySetPlayPosition( IRacingSdkEnum.RpyPosMode rpyPosMode, int frameNumber )
+		{
+			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.ReplaySetPlayPosition, (short) rpyPosMode, frameNumber );
+		}
+
+		public void ReplaySearch( IRacingSdkEnum.RpySrchMode rpySrchMode )
+		{
+			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.ReplaySearch, (short) rpySrchMode );
+		}
+
+		public void ReplaySetState( IRacingSdkEnum.RpyStateMode rpyStateMode )
+		{
+			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.ReplaySetState, (short) rpyStateMode );
+		}
+
+		public void ReloadTextures( IRacingSdkEnum.ReloadTexturesMode reloadTexturesMode, int carIdx )
+		{
+			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.ReloadTextures, (short) reloadTexturesMode, carIdx );
+		}
+
+		public void ChatComand( IRacingSdkEnum.ChatCommandMode chatCommandMode, int subCommand )
+		{
+			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.ChatComand, (short) chatCommandMode, subCommand );
+		}
+
+		public void PitCommand( IRacingSdkEnum.PitCommandMode pitCommandMode, int parameter )
+		{
+			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.PitCommand, (short) pitCommandMode, parameter );
+		}
+
+		public void TelemCommand( IRacingSdkEnum.TelemCommandMode telemCommandMode )
+		{
+			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.TelemCommand, (short) telemCommandMode );
+		}
+
+		public void FFBCommand( IRacingSdkEnum.FFBCommandMode ffbCommandMode, float value )
+		{
+			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.FFBCommand, (short) ffbCommandMode, value );
+		}
+
+		public void ReplaySearchSessionTime( int sessionNum, int sessionTimeMS )
+		{
+			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.ReplaySearchSessionTime, (short) sessionNum, sessionTimeMS );
+		}
+
+		public void VideoCapture( IRacingSdkEnum.VideoCaptureMode videoCaptureMode )
+		{
+			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.VideoCapture, (short) videoCaptureMode );
+		}
+
+		#endregion
+
+		#region broadcast message functions
+
+		private void BroadcastMessage( IRacingSdkEnum.BroadcastMsg msg, short var1, int var2 = 0 )
 		{
 			// TODO handle exceptions - get info when pinvoke site comes back up
-			Windows.PostMessage( (IntPtr) 0xFFFF, broadcastWindowMessage, Windows.MakeLong( (short) msg, (short) var1 ), Windows.MakeLong( (short) var2, (short) var3 ) );
+			Windows.PostMessage( (IntPtr) 0xFFFF, broadcastWindowMessage, Windows.MakeLong( (short) msg, var1 ), var2 );
 		}
+
+		private void BroadcastMessage( IRacingSdkEnum.BroadcastMsg msg, short var1, float var2 )
+		{
+			// TODO handle exceptions - get info when pinvoke site comes back up
+			Windows.PostMessage( (IntPtr) 0xFFFF, broadcastWindowMessage, Windows.MakeLong( (short) msg, var1 ), (int) ( var2 * 65536.0f ) );
+		}
+
+		private void BroadcastMessage( IRacingSdkEnum.BroadcastMsg msg, short var1, short var2, short var3 )
+		{
+			// TODO handle exceptions - get info when pinvoke site comes back up
+			Windows.PostMessage( (IntPtr) 0xFFFF, broadcastWindowMessage, Windows.MakeLong( (short) msg, var1 ), Windows.MakeLong( var2, var3 ) );
+		}
+
+		#endregion
+
+		#region background tasks
 
 		private void ConnectionLoop()
 		{
@@ -158,9 +252,9 @@ namespace HerboldRacing
 
 						memoryMappedViewAccessor = memoryMappedFile.CreateViewAccessor();
 
-						hEvent = Windows.OpenEvent( Windows.EVENT_ALL_ACCESS, false, EventName );
+						var hEvent = Windows.OpenEvent( Windows.EVENT_ALL_ACCESS, false, EventName );
 
-						if ( hEvent == null )
+						if ( hEvent == (IntPtr) null )
 						{
 							int errorCode = Marshal.GetLastWin32Error();
 
@@ -334,5 +428,7 @@ namespace HerboldRacing
 
 			Debug.WriteLine( "Session info loop stopped." );
 		}
+
+		#endregion
 	}
 }

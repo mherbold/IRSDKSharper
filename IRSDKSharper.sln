@@ -3,12 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33801.468
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IRSDKSharper", "IRSDKSharper.csproj", "{599CF3FA-8A4E-473C-B41A-D4FF27B1E3BC}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IRSDKSharperTest", "..\IRSDKSharperTest\IRSDKSharperTest.csproj", "{7168B539-34AE-4427-9722-A8DAD15A5FC1}"
-	ProjectSection(ProjectDependencies) = postProject
-		{599CF3FA-8A4E-473C-B41A-D4FF27B1E3BC} = {599CF3FA-8A4E-473C-B41A-D4FF27B1E3BC}
-	EndProjectSection
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IRSDKSharper", "IRSDKSharper.csproj", "{76C20468-C66C-49F2-BDC1-189467C5A49A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -16,19 +11,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{599CF3FA-8A4E-473C-B41A-D4FF27B1E3BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{599CF3FA-8A4E-473C-B41A-D4FF27B1E3BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{599CF3FA-8A4E-473C-B41A-D4FF27B1E3BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{599CF3FA-8A4E-473C-B41A-D4FF27B1E3BC}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7168B539-34AE-4427-9722-A8DAD15A5FC1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7168B539-34AE-4427-9722-A8DAD15A5FC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7168B539-34AE-4427-9722-A8DAD15A5FC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7168B539-34AE-4427-9722-A8DAD15A5FC1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76C20468-C66C-49F2-BDC1-189467C5A49A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76C20468-C66C-49F2-BDC1-189467C5A49A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76C20468-C66C-49F2-BDC1-189467C5A49A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76C20468-C66C-49F2-BDC1-189467C5A49A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {2ADC85CD-433A-46E3-A8EB-888D0C00C1CE}
+		SolutionGuid = {FB0E7118-E131-43EC-9B26-775571B15355}
 	EndGlobalSection
 EndGlobal
