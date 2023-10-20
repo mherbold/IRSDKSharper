@@ -21,8 +21,8 @@ namespace HerboldRacing
 		public event Action<Exception>? OnException = null;
 		public event Action? OnConnected = null;
 		public event Action? OnDisconnected = null;
-		public event Action? OnTelemetryData = null;
 		public event Action? OnSessionInfo = null;
+		public event Action? OnTelemetryData = null;
 
 		private bool stopNow = false;
 
@@ -120,6 +120,7 @@ namespace HerboldRacing
 			memoryMappedFile = null;
 
 			IsStarted = false;
+			IsConnected = false;
 
 			Debug.WriteLine( "IRSDKSharper stopped." );
 		}

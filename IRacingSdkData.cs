@@ -10,7 +10,7 @@ namespace HerboldRacing
 {
 	public class IRacingSdkData
 	{
-		public Dictionary<string, IRacingSdkDatum>? TelemetryData { get; private set; } = null;
+		public Dictionary<string, IRacingSdkDatum>? TelemetryDataProperties { get; private set; } = null;
 
 		public string? SessionInfoYaml { get; private set; } = null;
 
@@ -74,9 +74,9 @@ namespace HerboldRacing
 				FramesDropped += TickCount - lastTickCount - 1;
 			}
 
-			if ( TelemetryData == null )
+			if ( TelemetryDataProperties == null )
 			{
-				TelemetryData = new Dictionary<string, IRacingSdkDatum>( VarCount );
+				TelemetryDataProperties = new Dictionary<string, IRacingSdkDatum>( VarCount );
 
 				var nameArray = new byte[ IRacingSdkDatum.MaxNameLength ];
 				var descArray = new byte[ IRacingSdkDatum.MaxDescLength ];
@@ -107,7 +107,7 @@ namespace HerboldRacing
 						type = (int) IRacingSdkEnum.VarType.BitField;
 					}
 
-					TelemetryData[ name ] = new IRacingSdkDatum( (IRacingSdkEnum.VarType) type, offset, count, name, desc, unit );
+					TelemetryDataProperties[ name ] = new IRacingSdkDatum( (IRacingSdkEnum.VarType) type, offset, count, name, desc, unit );
 				}
 			}
 		}
@@ -131,7 +131,7 @@ namespace HerboldRacing
 			Validate( name, index, IRacingSdkEnum.VarType.Char );
 
 #pragma warning disable CS8602
-			return memoryMappedViewAccessor.ReadChar( Offset + TelemetryData[ name ].Offset + index );
+			return memoryMappedViewAccessor.ReadChar( Offset + TelemetryDataProperties[ name ].Offset + index );
 #pragma warning restore CS8602
 		}
 
@@ -141,7 +141,7 @@ namespace HerboldRacing
 			Validate( name, index, IRacingSdkEnum.VarType.Bool );
 
 #pragma warning disable CS8602
-			return memoryMappedViewAccessor.ReadBoolean( Offset + TelemetryData[ name ].Offset + index );
+			return memoryMappedViewAccessor.ReadBoolean( Offset + TelemetryDataProperties[ name ].Offset + index );
 #pragma warning restore CS8602
 		}
 
@@ -151,7 +151,7 @@ namespace HerboldRacing
 			Validate( name, index, IRacingSdkEnum.VarType.Int );
 
 #pragma warning disable CS8602
-			return memoryMappedViewAccessor.ReadInt32( Offset + TelemetryData[ name ].Offset + index * 4 );
+			return memoryMappedViewAccessor.ReadInt32( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
 #pragma warning restore CS8602
 		}
 
@@ -161,7 +161,7 @@ namespace HerboldRacing
 			Validate( name, index, IRacingSdkEnum.VarType.BitField );
 
 #pragma warning disable CS8602
-			return memoryMappedViewAccessor.ReadUInt32( Offset + TelemetryData[ name ].Offset + index * 4 );
+			return memoryMappedViewAccessor.ReadUInt32( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
 #pragma warning restore CS8602
 		}
 
@@ -172,7 +172,7 @@ namespace HerboldRacing
 			Validate( name, index, IRacingSdkEnum.VarType.Float );
 
 #pragma warning disable CS8602
-			return memoryMappedViewAccessor.ReadSingle( Offset + TelemetryData[ name ].Offset + index * 4 );
+			return memoryMappedViewAccessor.ReadSingle( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
 #pragma warning restore CS8602
 		}
 
@@ -182,7 +182,7 @@ namespace HerboldRacing
 			Validate( name, index, IRacingSdkEnum.VarType.Double );
 
 #pragma warning disable CS8602
-			return memoryMappedViewAccessor.ReadDouble( Offset + TelemetryData[ name ].Offset + index * 4 );
+			return memoryMappedViewAccessor.ReadDouble( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
 #pragma warning restore CS8602
 		}
 
@@ -192,7 +192,7 @@ namespace HerboldRacing
 			Validate( name, index, null );
 
 #pragma warning disable CS8602
-			var iRacingSdkDatum = TelemetryData[ name ];
+			var iRacingSdkDatum = TelemetryDataProperties[ name ];
 #pragma warning restore CS8602
 
 			return iRacingSdkDatum.VarType switch
@@ -210,12 +210,12 @@ namespace HerboldRacing
 		[Conditional( "DEBUG" )]
 		private void Validate( string name, int index, IRacingSdkEnum.VarType? type )
 		{
-			if ( TelemetryData == null )
+			if ( TelemetryDataProperties == null )
 			{
-				throw new Exception( $"{name}, {index}: TelemetryData == null!" );
+				throw new Exception( $"{name}, {index}: TelemetryDataProperty == null!" );
 			}
 
-			var iRacingSdkDatum = TelemetryData[ name ];
+			var iRacingSdkDatum = TelemetryDataProperties[ name ];
 
 			if ( index >= iRacingSdkDatum.Count )
 			{
