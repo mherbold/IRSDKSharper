@@ -1,4 +1,5 @@
 ﻿
+using System;
 using System.Diagnostics;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
@@ -10,40 +11,32 @@ namespace HerboldRacing
 {
 	public class IRacingSdkData
 	{
-		public Dictionary<string, IRacingSdkDatum>? TelemetryDataProperties { get; private set; } = null;
+		public readonly Dictionary<string, IRacingSdkDatum> TelemetryDataProperties = new();
+		public string SessionInfoYaml { get; private set; } = string.Empty;
+		public IRacingSdkSessionInfo SessionInfo { get; private set; } = new();
 
-		public string? SessionInfoYaml { get; private set; } = null;
-
-		public IRacingSdkSessionInfo? SessionInfo { get; private set; } = null;
-
-		public int Version => memoryMappedViewAccessor.ReadInt32( 0 );
-		public int Status => memoryMappedViewAccessor.ReadInt32( 4 );
-		public int TickRate => memoryMappedViewAccessor.ReadInt32( 8 );
-		public int SessionInfoUpdate => memoryMappedViewAccessor.ReadInt32( 12 );
-		public int SessionInfoLength => memoryMappedViewAccessor.ReadInt32( 16 );
-		public int SessionInfoOffset => memoryMappedViewAccessor.ReadInt32( 20 );
-		public int VarCount => memoryMappedViewAccessor.ReadInt32( 24 );
-		public int VarHeaderOffset => memoryMappedViewAccessor.ReadInt32( 28 );
-		public int BufferCount => memoryMappedViewAccessor.ReadInt32( 32 );
-		public int BufferLength => memoryMappedViewAccessor.ReadInt32( 36 );
+		public int Version => memoryMappedViewAccessor?.ReadInt32( 0 ) ?? 0;
+		public int Status => memoryMappedViewAccessor?.ReadInt32( 4 ) ?? 0;
+		public int TickRate => memoryMappedViewAccessor?.ReadInt32( 8 ) ?? 0;
+		public int SessionInfoUpdate => memoryMappedViewAccessor?.ReadInt32( 12 ) ?? 0;
+		public int SessionInfoLength => memoryMappedViewAccessor?.ReadInt32( 16 ) ?? 0;
+		public int SessionInfoOffset => memoryMappedViewAccessor?.ReadInt32( 20 ) ?? 0;
+		public int VarCount => memoryMappedViewAccessor?.ReadInt32( 24 ) ?? 0;
+		public int VarHeaderOffset => memoryMappedViewAccessor?.ReadInt32( 28 ) ?? 0;
+		public int BufferCount => memoryMappedViewAccessor?.ReadInt32( 32 ) ?? 0;
+		public int BufferLength => memoryMappedViewAccessor?.ReadInt32( 36 ) ?? 0;
 
 		public int TickCount { get; private set; } = -1;
 		public int Offset { get; private set; } = 0;
 		public int FramesDropped { get; private set; } = 0;
 
 		private readonly Encoding encoding;
-		private readonly MemoryMappedViewAccessor memoryMappedViewAccessor;
 		private readonly IDeserializer deserializer;
 
-		public IRacingSdkData( MemoryMappedViewAccessor? memoryMappedViewAccessor )
+		private MemoryMappedViewAccessor? memoryMappedViewAccessor = null;
+
+		public IRacingSdkData()
 		{
-			if ( memoryMappedViewAccessor == null )
-			{
-				throw new Exception( "memoryMappedViewAccessor is null." );
-			}
-
-			this.memoryMappedViewAccessor = memoryMappedViewAccessor;
-
 			Encoding.RegisterProvider( CodePagesEncodingProvider.Instance );
 
 			encoding = Encoding.GetEncoding( 1252 );
@@ -51,8 +44,26 @@ namespace HerboldRacing
 			deserializer = new DeserializerBuilder().IgnoreUnmatchedProperties().Build();
 		}
 
+		public void SetMemoryMappedViewAccessor( MemoryMappedViewAccessor memoryMappedViewAccessor )
+		{
+			this.memoryMappedViewAccessor = memoryMappedViewAccessor;
+		}
+
+		public void Reset()
+		{
+			TelemetryDataProperties.Clear();
+
+			SessionInfoYaml = string.Empty;
+
+			SessionInfo = new();
+
+			memoryMappedViewAccessor = null;
+		}
+
 		public void Update()
 		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
 			var lastTickCount = TickCount;
 
 			TickCount = -1;
@@ -74,10 +85,8 @@ namespace HerboldRacing
 				FramesDropped += TickCount - lastTickCount - 1;
 			}
 
-			if ( TelemetryDataProperties == null )
+			if ( TelemetryDataProperties.Count == 0 )
 			{
-				TelemetryDataProperties = new Dictionary<string, IRacingSdkDatum>( VarCount );
-
 				var nameArray = new byte[ IRacingSdkDatum.MaxNameLength ];
 				var descArray = new byte[ IRacingSdkDatum.MaxDescLength ];
 				var unitArray = new byte[ IRacingSdkDatum.MaxUnitLength ];
@@ -89,23 +98,46 @@ namespace HerboldRacing
 					var type = memoryMappedViewAccessor.ReadInt32( VarHeaderOffset + varOffset );
 					var offset = memoryMappedViewAccessor.ReadInt32( VarHeaderOffset + varOffset + 4 );
 					var count = memoryMappedViewAccessor.ReadInt32( VarHeaderOffset + varOffset + 8 );
+
 					var name = ReadString( VarHeaderOffset + varOffset + 16, nameArray );
 					var desc = ReadString( VarHeaderOffset + varOffset + 48, descArray );
 					var unit = ReadString( VarHeaderOffset + varOffset + 112, unitArray );
 
-					// iRacing SDK Bug - The header says irsdk_CarLeftRight is a bit field - it is not, it is a normal integer.
+					#region Fix some iRacing bugs
 
-					if ( unit == "irsdk_CarLeftRight" )
+					name = name switch
 					{
-						type = (int) IRacingSdkEnum.VarType.Int;
-					}
+						"CRSHshockDefl" => "CRshockDefl",
+						"CRSHshockDefl_ST" => "CRshockDefl_ST",
+						"CRSHshockVel" => "CRshockVel",
+						"CRSHshockVel_ST" => "CRshockVel_ST",
+						"LFSHshockDefl" => "LFshockDefl",
+						"LFSHshockDefl_ST" => "LFshockDefl_ST",
+						"LFSHshockVel" => "LFshockVel",
+						"LFSHshockVel_ST" => "LFshockVel_ST",
+						"LRSHshockDefl" => "LRshockDefl",
+						"LRSHshockDefl_ST" => "LRshockDefl_ST",
+						"LRSHshockVel" => "LRshockVel",
+						"LRSHshockVel_ST" => "LRshockVel_ST",
+						"RFSHshockDefl" => "RFshockDefl",
+						"RFSHshockDefl_ST" => "RFshockDefl_ST",
+						"RFSHshockVel" => "RFshockVel",
+						"RFSHshockVel_ST" => "RFshockVel_ST",
+						"RRSHshockDefl" => "RRshockDefl",
+						"RRSHshockDefl_ST" => "RRshockDefl_ST",
+						"RRSHshockVel" => "RRshockVel",
+						"RRSHshockVel_ST" => "RRshockVel_ST",
+						_ => name,
+					};
 
-					// iRacing SDK Bug - The header says irsdk_PaceFlags is a normal integer - it is not, it is a bit field.
-
-					else if ( unit == "irsdk_PaceFlags" )
+					type = unit switch
 					{
-						type = (int) IRacingSdkEnum.VarType.BitField;
-					}
+						"irsdk_CarLeftRight" => (int) IRacingSdkEnum.VarType.Int,
+						"irsdk_PaceFlags" => (int) IRacingSdkEnum.VarType.BitField,
+						_ => type
+					};
+
+					#endregion
 
 					TelemetryDataProperties[ name ] = new IRacingSdkDatum( (IRacingSdkEnum.VarType) type, offset, count, name, desc, unit );
 				}
@@ -114,6 +146,8 @@ namespace HerboldRacing
 
 		public void UpdateSessionInfo()
 		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
 			var bytes = new byte[ SessionInfoLength ];
 
 			memoryMappedViewAccessor.ReadArray( SessionInfoOffset, bytes, 0, SessionInfoLength );
@@ -128,72 +162,71 @@ namespace HerboldRacing
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public char GetChar( string name, int index )
 		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
 			Validate( name, index, IRacingSdkEnum.VarType.Char );
 
-#pragma warning disable CS8602
 			return memoryMappedViewAccessor.ReadChar( Offset + TelemetryDataProperties[ name ].Offset + index );
-#pragma warning restore CS8602
 		}
 
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public bool GetBool( string name, int index )
 		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
 			Validate( name, index, IRacingSdkEnum.VarType.Bool );
 
-#pragma warning disable CS8602
 			return memoryMappedViewAccessor.ReadBoolean( Offset + TelemetryDataProperties[ name ].Offset + index );
-#pragma warning restore CS8602
 		}
 
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetInt( string name, int index = 0 )
 		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
 			Validate( name, index, IRacingSdkEnum.VarType.Int );
 
-#pragma warning disable CS8602
 			return memoryMappedViewAccessor.ReadInt32( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
-#pragma warning restore CS8602
 		}
 
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public uint GetBitField( string name, int index = 0 )
 		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
 			Validate( name, index, IRacingSdkEnum.VarType.BitField );
 
-#pragma warning disable CS8602
 			return memoryMappedViewAccessor.ReadUInt32( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
-#pragma warning restore CS8602
 		}
 
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public float GetFloat( string name, int index = 0 )
 		{
+			Debug.Assert( memoryMappedViewAccessor != null );
 
 			Validate( name, index, IRacingSdkEnum.VarType.Float );
 
-#pragma warning disable CS8602
 			return memoryMappedViewAccessor.ReadSingle( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
-#pragma warning restore CS8602
 		}
 
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public double GetDouble( string name, int index = 0 )
 		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
 			Validate( name, index, IRacingSdkEnum.VarType.Double );
 
-#pragma warning disable CS8602
 			return memoryMappedViewAccessor.ReadDouble( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
-#pragma warning restore CS8602
 		}
 
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public object GetValue( string name, int index = 0 )
 		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
 			Validate( name, index, null );
 
-#pragma warning disable CS8602
 			var iRacingSdkDatum = TelemetryDataProperties[ name ];
-#pragma warning restore CS8602
 
 			return iRacingSdkDatum.VarType switch
 			{
@@ -210,26 +243,26 @@ namespace HerboldRacing
 		[Conditional( "DEBUG" )]
 		private void Validate( string name, int index, IRacingSdkEnum.VarType? type )
 		{
-			if ( TelemetryDataProperties == null )
+			if ( !TelemetryDataProperties.TryGetValue( name, out var iRacingSdkDatum ) )
 			{
-				throw new Exception( $"{name}, {index}: TelemetryDataProperty == null!" );
+				throw new Exception( $"{name}, {index}: TelemetryDataProperty[ name ] does not exist!" );
 			}
-
-			var iRacingSdkDatum = TelemetryDataProperties[ name ];
 
 			if ( index >= iRacingSdkDatum.Count )
 			{
-				throw new Exception( $"{name}, {index}: index >= iRacingSdkDatum.count" );
+				throw new Exception( $"{name}, {index}: index >= TelemetryDataProperties[ name ].count" );
 			}
 
 			if ( ( type != null ) && ( iRacingSdkDatum.VarType != type ) )
 			{
-				throw new Exception( $"{name}, {index}: iRacingSdkDatum.VarType != {type}" );
+				throw new Exception( $"{name}, {index}: TelemetryDataProperties[ name ].VarType != {type}" );
 			}
 		}
 
 		private string ReadString( int offset, byte[] buffer )
 		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
 			memoryMappedViewAccessor.ReadArray( offset, buffer, 0, buffer.Length );
 
 			return encoding.GetString( buffer ).TrimEnd( '\0' );

@@ -13,7 +13,7 @@ namespace HerboldRacing
 		private const string EventName = "Local\\IRSDKDataValidEvent";
 		private const string BroadcastMessageName = "IRSDK_BROADCASTMSG";
 
-		public IRacingSdkData? Data { get; private set; } = null;
+		public readonly IRacingSdkData Data = new();
 
 		public bool IsStarted { get; private set; } = false;
 		public bool IsConnected { get; private set; } = false;
@@ -93,7 +93,7 @@ namespace HerboldRacing
 				}
 			}
 
-			Data = null;
+			Data.Reset();
 
 			if ( connectionLoopRunning )
 			{
@@ -252,6 +252,13 @@ namespace HerboldRacing
 
 						memoryMappedViewAccessor = memoryMappedFile.CreateViewAccessor();
 
+						if ( memoryMappedViewAccessor == null )
+						{
+							throw new Exception( "Failed to create memory mapped view accessor." );
+						}
+
+						Data.SetMemoryMappedViewAccessor( memoryMappedViewAccessor );
+
 						var hEvent = Windows.OpenEvent( Windows.EVENT_ALL_ACCESS, false, EventName );
 
 						if ( hEvent == (IntPtr) null )
@@ -264,7 +271,7 @@ namespace HerboldRacing
 						{
 							simulatorAutoResetEvent = new AutoResetEvent( false )
 							{
-								SafeWaitHandle = new SafeWaitHandle( (IntPtr) hEvent, true )
+								SafeWaitHandle = new SafeWaitHandle( hEvent, true )
 							};
 
 							sessionInfoAutoResetEvent = new AutoResetEvent( false );
@@ -309,11 +316,9 @@ namespace HerboldRacing
 
 					if ( signalReceived )
 					{
-						if ( Data == null )
+						if ( !IsConnected )
 						{
 							Debug.WriteLine( "Connected to iRacing simulator." );
-
-							Data = new IRacingSdkData( memoryMappedViewAccessor );
 
 							IsConnected = true;
 
@@ -347,7 +352,7 @@ namespace HerboldRacing
 					}
 					else
 					{
-						if ( Data != null )
+						if ( IsConnected )
 						{
 							Debug.WriteLine( "Disconnected from iRacing simulator." );
 
@@ -361,13 +366,13 @@ namespace HerboldRacing
 								}
 							}
 
-							Data = null;
-
 							IsConnected = false;
 
 							Debug.WriteLine( "Invoking OnDisconnected..." );
 
 							OnDisconnected?.Invoke();
+
+							Data.Reset();
 						}
 					}
 				}
