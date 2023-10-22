@@ -1,5 +1,4 @@
 ﻿
-using System;
 using System.Diagnostics;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
@@ -158,7 +157,7 @@ namespace HerboldRacing
 		}
 
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
-		public char GetChar( string name, int index )
+		public char GetChar( string name, int index = 0 )
 		{
 			Debug.Assert( memoryMappedViewAccessor != null );
 
@@ -168,7 +167,7 @@ namespace HerboldRacing
 		}
 
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
-		public bool GetBool( string name, int index )
+		public bool GetBool( string name, int index = 0 )
 		{
 			Debug.Assert( memoryMappedViewAccessor != null );
 
