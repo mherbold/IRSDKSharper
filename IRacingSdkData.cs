@@ -56,8 +56,6 @@ namespace HerboldRacing
 			SessionInfoYaml = string.Empty;
 
 			SessionInfo = new();
-
-			memoryMappedViewAccessor = null;
 		}
 
 		public void Update()
