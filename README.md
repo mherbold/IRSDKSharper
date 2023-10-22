@@ -85,7 +85,7 @@ An exception will be thrown if you try to call `Stop` while `IsStarted` is false
 
 ### Simulator Remote Control
 There are several functions you can use to remotely control the iRacing simulator.
-These functions control the iRacing simulator by posting broadcast messages the iRacing simulator window.
+These functions control the iRacing simulator by posting broadcast messages to the iRacing simulator window.
 ```
 CamSwitchPos( IRacingSdkEnum.CamSwitchMode camSwitchMode, int carPosition, int group, int camera )
 CamSwitchNum( IRacingSdkEnum.CamSwitchMode camSwitchMode, int carNumberRaw, int group, int camera )
