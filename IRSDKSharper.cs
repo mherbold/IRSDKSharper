@@ -15,6 +15,8 @@ namespace HerboldRacing
 
 		public readonly IRacingSdkData Data = new();
 
+		public int UpdateInterval { get; set; } = 1;
+
 		public bool IsStarted { get; private set; } = false;
 		public bool IsConnected { get; private set; } = false;
 
@@ -35,6 +37,8 @@ namespace HerboldRacing
 
 		private AutoResetEvent? simulatorAutoResetEvent = null;
 		private AutoResetEvent? sessionInfoAutoResetEvent = null;
+
+		private int lastTelemetryDataUpdate = -1;
 
 		private int lastSessionInfoUpdate = -1;
 		private int sessionInfoUpdateChangedCount = 0;
@@ -105,14 +109,22 @@ namespace HerboldRacing
 				}
 			}
 
-			sessionInfoAutoResetEvent = null;
-			simulatorAutoResetEvent = null;
-
-			memoryMappedViewAccessor = null;
-			memoryMappedFile = null;
-
 			IsStarted = false;
 			IsConnected = false;
+
+			stopNow = false;
+
+			memoryMappedFile = null;
+			memoryMappedViewAccessor = null;
+
+			simulatorAutoResetEvent = null;
+			sessionInfoAutoResetEvent = null;
+
+			lastTelemetryDataUpdate = -1;
+
+			lastSessionInfoUpdate = -1;
+			sessionInfoUpdateChangedCount = 0;
+			sessionInfoUpdateReady = 0;
 
 			Debug.WriteLine( "IRSDKSharper stopped." );
 		}
@@ -348,7 +360,12 @@ namespace HerboldRacing
 							OnSessionInfo?.Invoke();
 						}
 
-						OnTelemetryData?.Invoke();
+						if ( ( Data.TickCount - lastTelemetryDataUpdate ) >= UpdateInterval )
+						{
+							lastTelemetryDataUpdate = Data.TickCount;
+
+							OnTelemetryData?.Invoke();
+						}
 					}
 					else
 					{
