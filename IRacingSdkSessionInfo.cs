@@ -86,7 +86,7 @@ namespace HerboldRacing
 				public string FogLevel { get; set; }
 				public string TimeOfDay { get; set; }
 				public string Date { get; set; }
-				public string EarthRotationSpeedupFactor { get; set; }
+				public float EarthRotationSpeedupFactor { get; set; }
 				public int Unofficial { get; set; }
 				public string CommercialMode { get; set; }
 				public string NightMode { get; set; }
@@ -95,8 +95,8 @@ namespace HerboldRacing
 				public int HasOpenRegistration { get; set; }
 				public int HardcoreLevel { get; set; }
 				public int NumJokerLaps { get; set; }
-				public string IncidentLimit { get; set; }
-				public string FastRepairsLimit { get; set; }
+				public int IncidentLimit { get; set; }
+				public int FastRepairsLimit { get; set; }
 				public int GreenWhiteCheckeredLimit { get; set; }
 			}
 
@@ -120,8 +120,9 @@ namespace HerboldRacing
 				public string SessionTrackRubberState { get; set; }
 				public string SessionName { get; set; }
 				public string SessionSubType { get; set; }
-				public string SessionSkipped { get; set; }
-				public string SessionRunGroupsUsed { get; set; }
+				public int SessionSkipped { get; set; }
+				public int SessionRunGroupsUsed { get; set; }
+				public int SessionEnforceTireCompoundChange { get; set; }
 				public List<PositionModel> ResultsPositions { get; set; }
 				public List<FastestLapModel> ResultsFastestLap { get; set; }
 				public float ResultsAverageLapTime { get; set; }
@@ -212,7 +213,7 @@ namespace HerboldRacing
 					public int Priority { get; set; }
 					public int CarIdx { get; set; }
 					public int EntryIdx { get; set; }
-					public int ClubID { get; set; }//%d
+					public int ClubID { get; set; }
 					public int CanScan { get; set; }
 					public int CanSquawk { get; set; }
 					public int Muted { get; set; }
@@ -225,7 +226,7 @@ namespace HerboldRacing
 		public class DriverInfoModel
 		{
 			public int DriverCarIdx { get; set; }
-			public string DriverUserID { get; set; }
+			public int DriverUserID { get; set; }
 			public int PaceCarIdx { get; set; }
 			public float DriverHeadPosX { get; set; }
 			public float DriverHeadPosY { get; set; }
@@ -239,13 +240,13 @@ namespace HerboldRacing
 			public float DriverCarMaxFuelPct { get; set; }
 			public int DriverCarGearNumForward { get; set; }
 			public int DriverCarGearNeutral { get; set; }
-			public int DriverCarGearReverse { get; set; } //%d
+			public int DriverCarGearReverse { get; set; }
 			public float DriverCarSLFirstRPM { get; set; }
 			public float DriverCarSLShiftRPM { get; set; }
 			public float DriverCarSLLastRPM { get; set; }
 			public float DriverCarSLBlinkRPM { get; set; }
 			public string DriverCarVersion { get; set; }
-			public float DriverPitTrkPct { get; set; }
+			public float DriverPitTrkPct { get; set; } // need to verify
 			public float DriverCarEstLapTime { get; set; }
 			public string DriverSetupName { get; set; }
 			public int DriverSetupIsModified { get; set; }
@@ -299,10 +300,10 @@ namespace HerboldRacing
 				public int CarSponsor_2 { get; set; }
 				public int CurDriverIncidentCount { get; set; }
 				public int TeamIncidentCount { get; set; }
-				public int DivisionID { get; set; }
-				public string ClubName { get; set; }
-				public int ClubID { get; set; }
-				public string DivisionName { get; set; }
+				public int DivisionID { get; set; } // need to verify
+				public string ClubName { get; set; } // need to verify
+				public int ClubID { get; set; } // need to verify
+				public string DivisionName { get; set; } // need to verify
 			}
 		}
 
