@@ -4,7 +4,10 @@ I created this project because I was frustrated with the performance and feature
 
 # How to use it
 Here is an example basic project to demonstrate how to set up and use IRSDKSharper.
+IRSDKSharper can be found within the HerboldRacing namespace.
 ```
+using HerboldRacing;
+
 public partial class MainWindow : Window
 {
     private IRSDKSharper irsdkSharper;
