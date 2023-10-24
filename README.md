@@ -224,6 +224,7 @@ https://github.com/mherbold/IRSDKSharperTest
 2. IRSDKSharp handles both session information updates and telemetry data in the same background task. Since the processing of the YAML session information string can take several frames, this causes an undesired stutter or frame drops in the telemetry data. IRSDKSharper does not suffer from this issue.
 3. The methods used to retrieve telemetry data runs many times faster in IRSDKSharper compared to IRSDKSharp, and in release builds they resolve to very fast inline direct memory access calls.
 4. IRSDKSharper fixes known issues with the iRacing SDK (see below).
+5. IRSDKSharp has some library dependencies that prevents it from working with Unity.
 
 # Fixes to IRSDK
 Unfortunately, the iRacing SDK has some bugs and errors. Most of these bugs are known to the developers at iRacing, but they will not be fixed due to the likelihood of breaking compatibility with existing apps. IRSDKSharper fixes all of these known issues -
