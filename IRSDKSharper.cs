@@ -13,7 +13,7 @@ namespace HerboldRacing
 		private const string EventName = "Local\\IRSDKDataValidEvent";
 		private const string BroadcastMessageName = "IRSDK_BROADCASTMSG";
 
-		public readonly IRacingSdkData Data = new();
+		public readonly IRacingSdkData Data;
 
 		public int UpdateInterval { get; set; } = 1;
 
@@ -45,6 +45,11 @@ namespace HerboldRacing
 		private int sessionInfoUpdateReady = 0;
 
 		private readonly int broadcastWindowMessage = Windows.RegisterWindowMessage( BroadcastMessageName ).ToInt32();
+
+		public IRSDKSharper( bool throwYamlExceptions = false )
+		{
+			Data = new( throwYamlExceptions );
+		}
 
 		public void Start()
 		{

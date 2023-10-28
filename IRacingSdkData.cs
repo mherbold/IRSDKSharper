@@ -34,13 +34,20 @@ namespace HerboldRacing
 
 		private MemoryMappedViewAccessor? memoryMappedViewAccessor = null;
 
-		public IRacingSdkData()
+		public IRacingSdkData( bool throwYamlExceptions )
 		{
 			Encoding.RegisterProvider( CodePagesEncodingProvider.Instance );
 
 			encoding = Encoding.GetEncoding( 1252 );
 
-			deserializer = new DeserializerBuilder().IgnoreUnmatchedProperties().Build();
+			var deserializerBuilder = new DeserializerBuilder();
+
+			if ( !throwYamlExceptions )
+			{
+				deserializerBuilder.IgnoreUnmatchedProperties();
+			}
+
+			deserializer = deserializerBuilder.Build();
 		}
 
 		public void SetMemoryMappedViewAccessor( MemoryMappedViewAccessor memoryMappedViewAccessor )
