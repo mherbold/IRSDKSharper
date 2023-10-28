@@ -1,6 +1,7 @@
 # IRSDKSharper
 Alternative C# implementation of the iRacing SDK.
 I created this project because I was frustrated with the performance and features of IRSDKSharp.
+If you find any bugs or have any questions or feedback or ideas or whatever, please feel free to open up a new issue!
 
 # How to use it
 Here is an example basic project to demonstrate how to set up and use IRSDKSharper.
@@ -71,6 +72,11 @@ public partial class MainWindow : Window
 # IRSDKSharper Class
 
 ## Methods
+
+### IRSDKSharper( bool throwYamlExceptions = false )
+When you create a new instance of IRSDKSharper you can pass in true to turn on the throwing of exceptions whenever the YAML parser detects that the IRacingSdkSessionInfo is missing some properties.
+This would normally be left off in your projects.
+This is really just a way for me to quickly figure out what is missing as iRacing is continually adding new session information properties.
 
 ### void Start()
 IRSDKSharper will create a new connection loop background task.
