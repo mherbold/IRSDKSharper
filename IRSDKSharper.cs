@@ -46,6 +46,24 @@ namespace HerboldRacing
 
 		private readonly int broadcastWindowMessage = Windows.RegisterWindowMessage( BroadcastMessageName ).ToInt32();
 
+		private ImprovedReplay? improvedReplay = null;
+
+		/// <summary>
+		/// <para>Welcome to IRSDKSharper!</para>
+		/// This is the basic process to start it up:
+		/// <code>
+		/// var irsdkSharper = new IRSDKSharper();
+		/// 
+		/// irsdkSharper.OnException += OnException;
+		/// irsdkSharper.OnConnected += OnConnected;
+		/// irsdkSharper.OnDisconnected += OnDisconnected;
+		/// irsdkSharper.OnTelemetryData += OnTelemetryData;
+		/// irsdkSharper.OnSessionInfo += OnSessionInfo;
+		/// 
+		/// irsdkSharper.Start();
+		/// </code>
+		/// </summary>
+		/// <param name="throwYamlExceptions">Set this to true to throw exceptions when our IRacingSdkSessionInfo class is missing properties that exist in the YAML data string.</param>
 		public IRSDKSharper( bool throwYamlExceptions = false )
 		{
 			Data = new( throwYamlExceptions );
@@ -132,6 +150,19 @@ namespace HerboldRacing
 			sessionInfoUpdateReady = 0;
 
 			Debug.WriteLine( "IRSDKSharper stopped." );
+		}
+
+		/// <summary>
+		/// This improved replay feature is a work in progress - please do not use it yet.
+		/// </summary>
+		public void EnableImprovedReplay( string? dataFilesPath )
+		{
+			improvedReplay = null;
+
+			if ( dataFilesPath != null )
+			{
+				improvedReplay = new ImprovedReplay( dataFilesPath );
+			}
 		}
 
 		#region simulator remote control
@@ -339,6 +370,8 @@ namespace HerboldRacing
 
 							IsConnected = true;
 
+							lastTelemetryDataUpdate = -1;
+
 							lastSessionInfoUpdate = -1;
 							sessionInfoUpdateReady = 0;
 
@@ -369,6 +402,8 @@ namespace HerboldRacing
 						{
 							lastTelemetryDataUpdate = Data.TickCount;
 
+							improvedReplay?.RecordTelemetryData( Data );
+
 							OnTelemetryData?.Invoke();
 						}
 					}
@@ -395,6 +430,8 @@ namespace HerboldRacing
 							OnDisconnected?.Invoke();
 
 							Data.Reset();
+
+							improvedReplay?.Reset();
 						}
 					}
 				}
@@ -433,7 +470,10 @@ namespace HerboldRacing
 						{
 							Debug.WriteLine( "Updating session info..." );
 
-							Data?.UpdateSessionInfo();
+							Data.UpdateSessionInfo();
+
+							improvedReplay?.Update( Data );
+							improvedReplay?.RecordSessionInfo( Data );
 
 							sessionInfoUpdateReady = 1;
 						}
