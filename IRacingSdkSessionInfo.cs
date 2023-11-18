@@ -1,4 +1,4 @@
-﻿
+
 #pragma warning disable CS8618
 
 namespace HerboldRacing
@@ -212,7 +212,7 @@ namespace HerboldRacing
 				public class RearModel
 				{
 					public string ArbArm { get; set; }
-					public float ArbDiameter { get; set; }
+					public string ArbDiameter { get; set; }
 					public string ArbPreload { get; set; }
 					public string ArmAsymmetry { get; set; }
 					public int Attach { get; set; }
@@ -588,7 +588,7 @@ namespace HerboldRacing
 				public string CourseCautions { get; set; }
 				public string Date { get; set; }
 				public float EarthRotationSpeedupFactor { get; set; }
-				public int FastRepairsLimit { get; set; }
+				public string FastRepairsLimit { get; set; }
 				public string FogLevel { get; set; }
 				public int GreenWhiteCheckeredLimit { get; set; }
 				public int HardcoreLevel { get; set; }
