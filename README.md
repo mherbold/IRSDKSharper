@@ -1,7 +1,9 @@
 # IRSDKSharper
 Alternative C# implementation of the iRacing SDK.
 I created this project because I was frustrated with the performance and features of IRSDKSharp.
-If you find any bugs or have any questions or feedback or ideas or whatever, please feel free to open up a new issue!
+If you find any bugs or have any questions or feedback or ideas or whatever, please feel free to open up a new issue on Github!
+
+https://github.com/mherbold/IRSDKSharper
 
 # How to use it
 Here is an example basic project to demonstrate how to set up and use IRSDKSharper.
