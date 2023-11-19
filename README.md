@@ -86,13 +86,12 @@ This connection loop will wait for the iRacing simulator to load and start broad
 Once telemetry data starts pouring in, IRSDKSharper will terminate the connection loop background task, and create two new background tasks<sup>1</sup>.
 The first new background task handles session information updates, and the second new background task handles telemetry data updates<sup>2</sup>.
 You can check `IsStarted` to see if `Start` has already been called.
-An exception will be thrown if you try to call `Start` while `IsStarted` is true.
 
 ### void Stop()
 IRSDKSharper will terminate all background tasks and clean up everything.
 The `IsStarted` property will become false.
 Do not call `Stop` from within any of the event handlers (it will deadlock).
-An exception will be thrown if you try to call `Stop` while `IsStarted` is false.
+Please call Stop() before setting your IRSDKSharper object to null to terminate all of the background tasks.
 
 ### Simulator Remote Control
 There are several functions you can use to remotely control the iRacing simulator.

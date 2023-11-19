@@ -66,17 +66,19 @@ namespace HerboldRacing
 		/// <param name="throwYamlExceptions">Set this to true to throw exceptions when our IRacingSdkSessionInfo class is missing properties that exist in the YAML data string.</param>
 		public IRSDKSharper( bool throwYamlExceptions = false )
 		{
+			Debug.WriteLine( "IRSDKSharper instantiated!" );
+
 			Data = new( throwYamlExceptions );
 		}
 
 		public void Start()
 		{
-			Debug.WriteLine( "IRSDKSharper starting..." );
-
 			if ( IsStarted )
 			{
-				throw new Exception( "IRSDKSharper has already been started." );
+				return;
 			}
+
+			Debug.WriteLine( "IRSDKSharper starting..." );
 
 			Task.Run( ConnectionLoop );
 
@@ -87,12 +89,12 @@ namespace HerboldRacing
 
 		public void Stop()
 		{
-			Debug.WriteLine( "IRSDKSharper stopping..." );
-
 			if ( !IsStarted )
 			{
-				throw new Exception( "IRSDKSharper has not been started." );
+				return;
 			}
+
+			Debug.WriteLine( "IRSDKSharper stopping..." );
 
 			Debug.WriteLine( "Setting stopNow = true." );
 
