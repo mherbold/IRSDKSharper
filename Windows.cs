@@ -1,5 +1,7 @@
 ﻿
+using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
+using System.Security;
 
 namespace HerboldRacing
 {
@@ -13,19 +15,20 @@ namespace HerboldRacing
 		public static extern IntPtr OpenEvent( uint dwDesiredAccess, bool bInheritHandle, string lpName );
 
 		[DllImport( "kernel32.dll", SetLastError = true )]
+		[SuppressUnmanagedCodeSecurity]
+		[return: MarshalAs( UnmanagedType.Bool )]
 		public static extern bool CloseHandle( IntPtr hObject );
 
-		// TODO confirm signature with pinvoke.net when site is back up
-		[DllImport( "user32.dll" )]
-		public static extern IntPtr RegisterWindowMessage( string lpProcName );
+		[DllImport( "user32.dll", SetLastError = true, CharSet = CharSet.Auto )]
+		public static extern uint RegisterWindowMessage( string lpString );
 
-		// TODO confirm signature with pinvoke.net when site is back up
-		[DllImport( "user32.dll" )]
-		public static extern IntPtr PostMessage( IntPtr hWnd, int Msg, int wParam, int lParam );
+		[DllImport( "user32.dll", SetLastError = true, CharSet = CharSet.Auto )]
+		[return: MarshalAs( UnmanagedType.Bool )]
+		public static extern bool PostMessage( IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam );
 
-		public static int MakeLong( short lowPart, short highPart )
+		public static IntPtr MakeLong( short lowPart, short highPart )
 		{
-			return (int) ( ( (ushort) lowPart ) | (uint) ( highPart << 16 ) );
+			return (IntPtr) ( ( (ushort) lowPart ) | (uint) ( highPart << 16 ) );
 		}
 	}
 }

@@ -15,18 +15,19 @@ namespace HerboldRacing
 
 		public readonly IRacingSdkData Data;
 
-		public int UpdateInterval { get; set; } = 1;
-
 		public bool IsStarted { get; private set; } = false;
 		public bool IsConnected { get; private set; } = false;
+
+		public int UpdateInterval { get; set; } = 1;
 
 		public event Action<Exception>? OnException = null;
 		public event Action? OnConnected = null;
 		public event Action? OnDisconnected = null;
-		public event Action? OnTelemetryData = null;
 		public event Action? OnSessionInfo = null;
+		public event Action? OnTelemetryData = null;
+		public event Action? OnStopped = null;
 
-		private bool stopNow = false;
+		private int isStarted = 0;
 
 		private bool connectionLoopRunning = false;
 		private bool telemetryDataLoopRunning = false;
@@ -44,7 +45,7 @@ namespace HerboldRacing
 		private int sessionInfoUpdateChangedCount = 0;
 		private int sessionInfoUpdateReady = 0;
 
-		private readonly int broadcastWindowMessage = Windows.RegisterWindowMessage( BroadcastMessageName ).ToInt32();
+		private readonly uint broadcastWindowMessage = Windows.RegisterWindowMessage( BroadcastMessageName );
 
 		private ImprovedReplay? improvedReplay = null;
 
@@ -52,13 +53,14 @@ namespace HerboldRacing
 		/// <para>Welcome to IRSDKSharper!</para>
 		/// This is the basic process to start it up:
 		/// <code>
-		/// var irsdkSharper = new IRSDKSharper();
+		/// var irsdk = new IRSDKSharper();
 		/// 
-		/// irsdkSharper.OnException += OnException;
-		/// irsdkSharper.OnConnected += OnConnected;
-		/// irsdkSharper.OnDisconnected += OnDisconnected;
-		/// irsdkSharper.OnTelemetryData += OnTelemetryData;
-		/// irsdkSharper.OnSessionInfo += OnSessionInfo;
+		/// irsdk.OnException += OnException;
+		/// irsdk.OnConnected += OnConnected;
+		/// irsdk.OnDisconnected += OnDisconnected;
+		/// irsdk.OnTelemetryData += OnTelemetryData;
+		/// irsdk.OnSessionInfo += OnSessionInfo;
+		/// irsdk.OnStopped += OnStopped;
 		/// 
 		/// irsdkSharper.Start();
 		/// </code>
@@ -66,92 +68,95 @@ namespace HerboldRacing
 		/// <param name="throwYamlExceptions">Set this to true to throw exceptions when our IRacingSdkSessionInfo class is missing properties that exist in the YAML data string.</param>
 		public IRSDKSharper( bool throwYamlExceptions = false )
 		{
-			Debug.WriteLine( "IRSDKSharper instantiated!" );
+			Debug.WriteLine( "IRSDKSharper is being instantiated." );
 
 			Data = new( throwYamlExceptions );
 		}
 
 		public void Start()
 		{
-			if ( IsStarted )
+			if ( Interlocked.Exchange( ref isStarted, 1 ) == 1 )
 			{
-				return;
+				Debug.WriteLine( "IRSDKSharper has already been started or is starting." );
 			}
+			else
+			{
+				Debug.WriteLine( "IRSDKSharper is starting." );
 
-			Debug.WriteLine( "IRSDKSharper starting..." );
+				Task.Run( ConnectionLoop );
 
-			Task.Run( ConnectionLoop );
+				IsStarted = true;
 
-			IsStarted = true;
-
-			Debug.WriteLine( "IRSDKSharper started." );
+				Debug.WriteLine( "IRSDKSharper has been started." );
+			}
 		}
 
 		public void Stop()
 		{
-			if ( !IsStarted )
+			if ( Interlocked.Exchange( ref isStarted, 0 ) == 0 )
 			{
-				return;
+				Debug.WriteLine( "IRSDKSharper has already been stopped or is stopping." );
 			}
-
-			Debug.WriteLine( "IRSDKSharper stopping..." );
-
-			Debug.WriteLine( "Setting stopNow = true." );
-
-			stopNow = true;
-
-			if ( sessionInfoLoopRunning )
+			else
 			{
-				Debug.WriteLine( "Waiting for session info loop to stop..." );
+				Debug.WriteLine( "IRSDKSharper is stopping." );
 
-				sessionInfoAutoResetEvent?.Set();
-
-				while ( sessionInfoLoopRunning )
+				Task.Run( () =>
 				{
-					Thread.Sleep( 0 );
-				}
+					if ( sessionInfoLoopRunning )
+					{
+						Debug.WriteLine( "Waiting for session info loop to stop." );
+
+						sessionInfoAutoResetEvent?.Set();
+
+						while ( sessionInfoLoopRunning )
+						{
+							Thread.Sleep( 0 );
+						}
+					}
+
+					if ( telemetryDataLoopRunning )
+					{
+						Debug.WriteLine( "Waiting for telemetry data loop to stop." );
+
+						while ( telemetryDataLoopRunning )
+						{
+							Thread.Sleep( 0 );
+						}
+					}
+
+					Data.Reset();
+
+					if ( connectionLoopRunning )
+					{
+						Debug.WriteLine( "Waiting for connection loop to stop." );
+
+						while ( connectionLoopRunning )
+						{
+							Thread.Sleep( 0 );
+						}
+					}
+
+					IsStarted = false;
+					IsConnected = false;
+
+					memoryMappedFile = null;
+					memoryMappedViewAccessor = null;
+
+					simulatorAutoResetEvent = null;
+					sessionInfoAutoResetEvent = null;
+
+					lastTelemetryDataUpdate = -1;
+
+					lastSessionInfoUpdate = -1;
+					sessionInfoUpdateChangedCount = 0;
+					sessionInfoUpdateReady = 0;
+
+					Debug.WriteLine( "IRSDKSharper has been stopped." );
+
+					OnStopped?.Invoke();
+				} );
 			}
-
-			if ( telemetryDataLoopRunning )
-			{
-				Debug.WriteLine( "Waiting for telemetry data loop to stop..." );
-
-				while ( telemetryDataLoopRunning )
-				{
-					Thread.Sleep( 0 );
-				}
-			}
-
-			Data.Reset();
-
-			if ( connectionLoopRunning )
-			{
-				Debug.WriteLine( "Waiting for connection loop to stop..." );
-
-				while ( connectionLoopRunning )
-				{
-					Thread.Sleep( 0 );
-				}
-			}
-
-			IsStarted = false;
-			IsConnected = false;
-
-			stopNow = false;
-
-			memoryMappedFile = null;
-			memoryMappedViewAccessor = null;
-
-			simulatorAutoResetEvent = null;
-			sessionInfoAutoResetEvent = null;
-
-			lastTelemetryDataUpdate = -1;
-
-			lastSessionInfoUpdate = -1;
-			sessionInfoUpdateChangedCount = 0;
-			sessionInfoUpdateReady = 0;
-
-			Debug.WriteLine( "IRSDKSharper stopped." );
 		}
 
 		/// <summary>
@@ -255,20 +260,32 @@ namespace HerboldRacing
 
 		private void BroadcastMessage( IRacingSdkEnum.BroadcastMsg msg, short var1, int var2 = 0 )
 		{
-			// TODO handle exceptions - get info when pinvoke site comes back up
-			Windows.PostMessage( (IntPtr) 0xFFFF, broadcastWindowMessage, Windows.MakeLong( (short) msg, var1 ), var2 );
+			if ( !Windows.PostMessage( (IntPtr) 0xFFFF, broadcastWindowMessage, Windows.MakeLong( (short) msg, var1 ), (IntPtr) var2 ) )
+			{
+				int errorCode = Marshal.GetLastWin32Error();
+
+				Marshal.ThrowExceptionForHR( errorCode, IntPtr.Zero );
+			}
 		}
 
 		private void BroadcastMessage( IRacingSdkEnum.BroadcastMsg msg, short var1, float var2 )
 		{
-			// TODO handle exceptions - get info when pinvoke site comes back up
-			Windows.PostMessage( (IntPtr) 0xFFFF, broadcastWindowMessage, Windows.MakeLong( (short) msg, var1 ), (int) ( var2 * 65536.0f ) );
+			if ( !Windows.PostMessage( (IntPtr) 0xFFFF, broadcastWindowMessage, Windows.MakeLong( (short) msg, var1 ), (IntPtr) ( var2 * 65536.0f ) ) )
+			{
+				int errorCode = Marshal.GetLastWin32Error();
+
+				Marshal.ThrowExceptionForHR( errorCode, IntPtr.Zero );
+			}
 		}
 
 		private void BroadcastMessage( IRacingSdkEnum.BroadcastMsg msg, short var1, short var2, short var3 )
 		{
-			// TODO handle exceptions - get info when pinvoke site comes back up
-			Windows.PostMessage( (IntPtr) 0xFFFF, broadcastWindowMessage, Windows.MakeLong( (short) msg, var1 ), Windows.MakeLong( var2, var3 ) );
+			if ( !Windows.PostMessage( (IntPtr) 0xFFFF, broadcastWindowMessage, Windows.MakeLong( (short) msg, var1 ), Windows.MakeLong( var2, var3 ) ) )
+			{
+				int errorCode = Marshal.GetLastWin32Error();
+
+				Marshal.ThrowExceptionForHR( errorCode, IntPtr.Zero );
+			}
 		}
 
 		#endregion
@@ -277,13 +294,13 @@ namespace HerboldRacing
 
 		private void ConnectionLoop()
 		{
-			Debug.WriteLine( "Connection loop started." );
+			Debug.WriteLine( "Connection loop has been started." );
 
 			try
 			{
 				connectionLoopRunning = true;
 
-				while ( !stopNow )
+				while ( isStarted == 1 )
 				{
 					if ( memoryMappedFile == null )
 					{
@@ -326,8 +343,8 @@ namespace HerboldRacing
 
 							sessionInfoAutoResetEvent = new AutoResetEvent( false );
 
-							Task.Run( TelemetryDataLoop );
 							Task.Run( SessionInfoLoop );
+							Task.Run( TelemetryDataLoop );
 						}
 
 						break;
@@ -342,125 +359,25 @@ namespace HerboldRacing
 			}
 			catch ( Exception exception )
 			{
-				Debug.WriteLine( "Connection loop exception caught." );
+				Debug.WriteLine( "Exception caught inside the connection loop." );
 
 				connectionLoopRunning = false;
 
 				OnException?.Invoke( exception );
 			}
 
-			Debug.WriteLine( "Connection loop stopped." );
-		}
-
-		private void TelemetryDataLoop()
-		{
-			Debug.WriteLine( "Telemetry data loop starting." );
-
-			try
-			{
-				telemetryDataLoopRunning = true;
-
-				while ( !stopNow )
-				{
-					var signalReceived = simulatorAutoResetEvent?.WaitOne( 250 ) ?? false;
-
-					if ( signalReceived )
-					{
-						if ( !IsConnected )
-						{
-							Debug.WriteLine( "Connected to iRacing simulator." );
-
-							IsConnected = true;
-
-							lastTelemetryDataUpdate = -1;
-
-							lastSessionInfoUpdate = -1;
-							sessionInfoUpdateReady = 0;
-
-							OnConnected?.Invoke();
-						}
-
-						Data.Update();
-
-						if ( lastSessionInfoUpdate != Data.SessionInfoUpdate )
-						{
-							Debug.WriteLine( "iRacingSdkData.SessionInfoUpdate changed." );
-
-							lastSessionInfoUpdate = Data.SessionInfoUpdate;
-
-							Interlocked.Increment( ref sessionInfoUpdateChangedCount );
-
-							sessionInfoAutoResetEvent?.Set();
-						}
-
-						if ( Interlocked.Exchange( ref sessionInfoUpdateReady, 0 ) == 1 )
-						{
-							Debug.WriteLine( "Invoking OnSessionInfo..." );
-
-							OnSessionInfo?.Invoke();
-						}
-
-						if ( ( Data.TickCount - lastTelemetryDataUpdate ) >= UpdateInterval )
-						{
-							lastTelemetryDataUpdate = Data.TickCount;
-
-							improvedReplay?.RecordTelemetryData( Data );
-
-							OnTelemetryData?.Invoke();
-						}
-					}
-					else
-					{
-						if ( IsConnected )
-						{
-							Debug.WriteLine( "Disconnected from iRacing simulator." );
-
-							if ( sessionInfoUpdateChangedCount > 0 )
-							{
-								Debug.WriteLine( "Draining sessionInfoUpdateChangedCount..." );
-
-								while ( sessionInfoUpdateChangedCount > 0 )
-								{
-									Thread.Sleep( 0 );
-								}
-							}
-
-							IsConnected = false;
-
-							Debug.WriteLine( "Invoking OnDisconnected..." );
-
-							OnDisconnected?.Invoke();
-
-							Data.Reset();
-
-							improvedReplay?.Reset();
-						}
-					}
-				}
-
-				telemetryDataLoopRunning = false;
-			}
-			catch ( Exception exception )
-			{
-				Debug.WriteLine( "Telemetry data loop exception caught." );
-
-				telemetryDataLoopRunning = false;
-
-				OnException?.Invoke( exception );
-			}
-
-			Debug.WriteLine( "Telemetry data loop stopped." );
+			Debug.WriteLine( "Connection loop has been stopped." );
 		}
 
 		private void SessionInfoLoop()
 		{
-			Debug.WriteLine( "Session info loop started." );
+			Debug.WriteLine( "Session info loop has been started." );
 
 			try
 			{
 				sessionInfoLoopRunning = true;
 
-				while ( !stopNow )
+				while ( isStarted == 1 )
 				{
 					Debug.WriteLine( "Waiting for session info event." );
 
@@ -468,9 +385,9 @@ namespace HerboldRacing
 
 					while ( sessionInfoUpdateChangedCount > 0 )
 					{
-						if ( !stopNow )
+						if ( isStarted == 1 )
 						{
-							Debug.WriteLine( "Updating session info..." );
+							Debug.WriteLine( "Updating session info." );
 
 							Data.UpdateSessionInfo();
 
@@ -488,14 +405,114 @@ namespace HerboldRacing
 			}
 			catch ( Exception exception )
 			{
-				Debug.WriteLine( "Session info loop exception caught." );
+				Debug.WriteLine( "Exception caught inside the session info loop." );
 
 				sessionInfoLoopRunning = false;
 
 				OnException?.Invoke( exception );
 			}
 
-			Debug.WriteLine( "Session info loop stopped." );
+			Debug.WriteLine( "Session info loop has been stopped." );
+		}
+
+		private void TelemetryDataLoop()
+		{
+			Debug.WriteLine( "Telemetry data loop has been started." );
+
+			try
+			{
+				telemetryDataLoopRunning = true;
+
+				while ( isStarted == 1 )
+				{
+					var signalReceived = simulatorAutoResetEvent?.WaitOne( 250 ) ?? false;
+
+					if ( signalReceived )
+					{
+						if ( !IsConnected )
+						{
+							Debug.WriteLine( "The iRacing simulator is running." );
+
+							IsConnected = true;
+
+							lastTelemetryDataUpdate = -1;
+
+							lastSessionInfoUpdate = -1;
+							sessionInfoUpdateReady = 0;
+
+							OnConnected?.Invoke();
+						}
+
+						Data.Update();
+
+						if ( lastSessionInfoUpdate != Data.SessionInfoUpdate )
+						{
+							Debug.WriteLine( "Data.SessionInfoUpdate has changed." );
+
+							lastSessionInfoUpdate = Data.SessionInfoUpdate;
+
+							Interlocked.Increment( ref sessionInfoUpdateChangedCount );
+
+							sessionInfoAutoResetEvent?.Set();
+						}
+
+						if ( Interlocked.Exchange( ref sessionInfoUpdateReady, 0 ) == 1 )
+						{
+							Debug.WriteLine( "Invoking OnSessionInfo." );
+
+							OnSessionInfo?.Invoke();
+						}
+
+						if ( ( Data.TickCount - lastTelemetryDataUpdate ) >= UpdateInterval )
+						{
+							lastTelemetryDataUpdate = Data.TickCount;
+
+							improvedReplay?.RecordTelemetryData( Data );
+
+							OnTelemetryData?.Invoke();
+						}
+					}
+					else
+					{
+						if ( IsConnected )
+						{
+							Debug.WriteLine( "The iRacing simulator is no longer running." );
+
+							if ( sessionInfoUpdateChangedCount > 0 )
+							{
+								Debug.WriteLine( "Draining sessionInfoUpdateChangedCount." );
+
+								while ( sessionInfoUpdateChangedCount > 0 )
+								{
+									Thread.Sleep( 0 );
+								}
+							}
+
+							IsConnected = false;
+
+							Debug.WriteLine( "Invoking OnDisconnected." );
+
+							OnDisconnected?.Invoke();
+
+							Data.Reset();
+
+							improvedReplay?.Reset();
+						}
+					}
+				}
+
+				telemetryDataLoopRunning = false;
+			}
+			catch ( Exception exception )
+			{
+				Debug.WriteLine( "Exception caught inside the telemetry data loop." );
+
+				telemetryDataLoopRunning = false;
+
+				OnException?.Invoke( exception );
+			}
+
+			Debug.WriteLine( "Telemetry data loop has been stopped." );
 		}
 
 		#endregion

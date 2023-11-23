@@ -20,14 +20,15 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         // create an instance of IRSDKSharper
-        irsdkSharper = new IRSDKSharper();
+        irsdk = new IRSDKSharper();
 
         // hook up our event handlers
-        irsdkSharper.OnException += OnException;
-        irsdkSharper.OnConnected += OnConnected;
-        irsdkSharper.OnDisconnected += OnDisconnected;
-        irsdkSharper.OnSessionInfo += OnSessionInfo;
-        irsdkSharper.OnTelemetryData += OnTelemetryData;
+        irsdk.OnException += OnException;
+        irsdk.OnConnected += OnConnected;
+        irsdk.OnDisconnected += OnDisconnected;
+        irsdk.OnSessionInfo += OnSessionInfo;
+        irsdk.OnTelemetryData += OnTelemetryData;
+        irsdk.OnStopped += OnStopped;
 
         // this means fire the OnTelemetryData event every 30 data frames (2 times a second)
         irsdkSharper.UpdateInterval = 30; 
@@ -69,6 +70,11 @@ public partial class MainWindow : Window
 
         Debug.Log( $"OnTelemetryData fired! Lap dist pct for the 6th car in the array is {lapDistPct}." );
     }
+
+    private void OnStopped()
+    {
+        Debug.Log( "OnStopped() fired!" );
+    }
 ```
 
 # IRSDKSharper Class
@@ -85,13 +91,12 @@ IRSDKSharper will create a new connection loop background task.
 This connection loop will wait for the iRacing simulator to load and start broadcasting telemetry data.
 Once telemetry data starts pouring in, IRSDKSharper will terminate the connection loop background task, and create two new background tasks<sup>1</sup>.
 The first new background task handles session information updates, and the second new background task handles telemetry data updates<sup>2</sup>.
-You can check `IsStarted` to see if `Start` has already been called.
 
 ### void Stop()
 IRSDKSharper will terminate all background tasks and clean up everything.
-The `IsStarted` property will become false.
-Do not call `Stop` from within any of the event handlers (it will deadlock).
-Please call Stop() before setting your IRSDKSharper object to null to terminate all of the background tasks.
+This is done asynchronously, and it is safe to call `Stop()` from within any of your event handlers.
+The `IsStarted` property will become false and the `OnStopped` event will be fired when IRSDKSharper has completely stopped.
+Please call `Stop()` before setting your IRSDKSharper object to null to terminate all of the background tasks.
 
 ### Simulator Remote Control
 There are several functions you can use to remotely control the iRacing simulator.
@@ -155,6 +160,9 @@ For this reason, it is important that you do things quickly in your event handle
 The `OnTelemetryData` event is fired whenever we receive a new frame of telemetry data from the iRacing simulator.
 IRSDKSharper will not process any more frames of data until your event handler completes.
 For this reason, it is important that you do things quickly in your event handler in order to avoid dropping frames of data.
+
+### public event Action? OnStopped
+The `OnStopped` event is fired when IRSDKSharper has fully stopped.
 
 # IRacingSdkData Class
 All iRacing simulator data can be accessed through the `IRSDKSharper.Data` property.
