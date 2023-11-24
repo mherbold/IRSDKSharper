@@ -150,24 +150,33 @@ namespace HerboldRacing
 			}
 		}
 
-		public void UpdateSessionInfo()
+		public bool UpdateSessionInfo()
 		{
 			Debug.Assert( memoryMappedViewAccessor != null );
 
-			var bytes = new byte[ SessionInfoLength ];
+			var sessionInfoLength = SessionInfoLength;
 
-			memoryMappedViewAccessor.ReadArray( SessionInfoOffset, bytes, 0, SessionInfoLength );
-
-			SessionInfoYaml = FixInvalidYaml( bytes );
-
-			var stringReader = new StringReader( SessionInfoYaml );
-
-			var sessionInfo = deserializer.Deserialize<IRacingSdkSessionInfo>( stringReader );
-
-			if ( sessionInfo != null )
+			if ( sessionInfoLength > 0 )
 			{
-				SessionInfo = sessionInfo;
+				var bytes = new byte[ SessionInfoLength ];
+
+				memoryMappedViewAccessor.ReadArray( SessionInfoOffset, bytes, 0, SessionInfoLength );
+
+				SessionInfoYaml = FixInvalidYaml( bytes );
+
+				var stringReader = new StringReader( SessionInfoYaml );
+
+				var sessionInfo = deserializer.Deserialize<IRacingSdkSessionInfo>( stringReader );
+
+				if ( sessionInfo != null )
+				{
+					SessionInfo = sessionInfo;
+
+					return true;
+				}
 			}
+
+			return false;
 		}
 
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]

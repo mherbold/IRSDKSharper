@@ -389,12 +389,13 @@ namespace HerboldRacing
 						{
 							Debug.WriteLine( "Updating session info." );
 
-							Data.UpdateSessionInfo();
+							if ( Data.UpdateSessionInfo() )
+							{
+								improvedReplay?.Update( Data );
+								improvedReplay?.RecordSessionInfo( Data );
 
-							improvedReplay?.Update( Data );
-							improvedReplay?.RecordSessionInfo( Data );
-
-							sessionInfoUpdateReady = 1;
+								sessionInfoUpdateReady = 1;
+							}
 						}
 
 						Interlocked.Decrement( ref sessionInfoUpdateChangedCount );
