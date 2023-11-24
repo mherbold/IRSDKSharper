@@ -58,10 +58,12 @@ namespace HerboldRacing
 		public void Reset()
 		{
 			TelemetryDataProperties.Clear();
-
 			SessionInfoYaml = string.Empty;
-
 			SessionInfo = new();
+
+			TickCount = -1;
+			Offset = 0;
+			FramesDropped = 0;
 		}
 
 		public void Update()
@@ -160,7 +162,12 @@ namespace HerboldRacing
 
 			var stringReader = new StringReader( SessionInfoYaml );
 
-			SessionInfo = deserializer.Deserialize<IRacingSdkSessionInfo>( stringReader );
+			var sessionInfo = deserializer.Deserialize<IRacingSdkSessionInfo>( stringReader );
+
+			if ( sessionInfo != null )
+			{
+				SessionInfo = sessionInfo;
+			}
 		}
 
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
