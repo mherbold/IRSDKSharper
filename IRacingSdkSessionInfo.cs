@@ -637,7 +637,7 @@ namespace HerboldRacing
 				public string CourseCautions { get; set; }
 				public string Date { get; set; }
 				public float EarthRotationSpeedupFactor { get; set; }
-				public int FastRepairsLimit { get; set; }
+				public string FastRepairsLimit { get; set; }
 				public string FogLevel { get; set; }
 				public int GreenWhiteCheckeredLimit { get; set; }
 				public int HardcoreLevel { get; set; }
