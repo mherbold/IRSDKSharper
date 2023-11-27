@@ -158,9 +158,9 @@ namespace HerboldRacing
 
 			if ( sessionInfoLength > 0 )
 			{
-				var bytes = new byte[ SessionInfoLength ];
+				var bytes = new byte[ sessionInfoLength ];
 
-				memoryMappedViewAccessor.ReadArray( SessionInfoOffset, bytes, 0, SessionInfoLength );
+				memoryMappedViewAccessor.ReadArray( SessionInfoOffset, bytes, 0, sessionInfoLength );
 
 				SessionInfoYaml = FixInvalidYaml( bytes );
 
