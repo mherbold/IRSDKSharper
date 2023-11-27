@@ -41,7 +41,7 @@ namespace HerboldRacing
 
 		private int lastTelemetryDataUpdate = -1;
 
-		private int lastSessionInfoUpdate = -1;
+		private int lastSessionInfoUpdate = 0;
 		private int sessionInfoUpdateChangedCount = 0;
 		private int sessionInfoUpdateReady = 0;
 
@@ -148,7 +148,7 @@ namespace HerboldRacing
 
 					lastTelemetryDataUpdate = -1;
 
-					lastSessionInfoUpdate = -1;
+					lastSessionInfoUpdate = 0;
 					sessionInfoUpdateChangedCount = 0;
 					sessionInfoUpdateReady = 0;
 
@@ -438,7 +438,7 @@ namespace HerboldRacing
 
 							lastTelemetryDataUpdate = -1;
 
-							lastSessionInfoUpdate = -1;
+							lastSessionInfoUpdate = 0;
 							sessionInfoUpdateReady = 0;
 
 							OnConnected?.Invoke();
