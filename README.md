@@ -8,7 +8,7 @@ https://github.com/mherbold/IRSDKSharper
 # How to use it
 Here is an example basic project to demonstrate how to set up and use IRSDKSharper.
 IRSDKSharper can be found within the HerboldRacing namespace.
-```
+```cs
 using HerboldRacing;
 
 public partial class MainWindow : Window
@@ -101,7 +101,7 @@ Please call `Stop()` before setting your IRSDKSharper object to null to terminat
 ### Simulator Remote Control
 There are several functions you can use to remotely control the iRacing simulator.
 These functions control the iRacing simulator by posting broadcast messages to the iRacing simulator window.
-```
+```cs
 CamSwitchPos( IRacingSdkEnum.CamSwitchMode camSwitchMode, int carPosition, int group, int camera )
 CamSwitchNum( IRacingSdkEnum.CamSwitchMode camSwitchMode, int carNumberRaw, int group, int camera )
 CamSetState( IRacingSdkEnum.CameraState cameraState )
@@ -215,7 +215,7 @@ Ideally there should be no frames dropped after that point.
 
 ## Methods
 To access the actual values of this telemetry data you would use one of the following methods<sup>3</sup>.
-```
+```cs
 char GetChar( string name, int index = 0 )
 bool GetBool( string name, int index = 0 )
 int GetInt( string name, int index = 0 )
@@ -224,9 +224,19 @@ float GetFloat( string name, int index = 0 )
 double GetDouble( string name, int index = 0 )
 ```
 You may also use this generic method as well, which would return the data value as a generic object -
-```
+```cs
 object GetValue( string name, int index = 0 )
 ```
+You may also use array versions of these functions as well, which would return the data values as arrays -
+```cs
+int GetCharArray( string name, char[] array, int index, int count )
+int GetBoolArray( string name, bool[] array, int index, int count )
+int GetIntArray( string name, int[] array, int index, int count )
+int GetBitFieldArray( string name, uint[] array, int index, int count )
+int GetFloatArray( string name, float[] array, int index, int count )
+int GetDoubleArray( string name, double[] array, int index, int count )
+```
+The above array functions return the number of elements retrieved.
 
 # Useful tips
 

@@ -47,7 +47,7 @@ namespace HerboldRacing
 
 		private readonly uint broadcastWindowMessage = Windows.RegisterWindowMessage( BroadcastMessageName );
 
-		private ImprovedReplay? improvedReplay = null;
+		private EventSystem? eventSystem = null;
 
 		/// <summary>
 		/// <para>Welcome to IRSDKSharper!</para>
@@ -152,6 +152,8 @@ namespace HerboldRacing
 					sessionInfoUpdateChangedCount = 0;
 					sessionInfoUpdateReady = 0;
 
+					eventSystem?.Reset();
+
 					Debug.WriteLine( "IRSDKSharper has been stopped." );
 
 					OnStopped?.Invoke();
@@ -160,15 +162,15 @@ namespace HerboldRacing
 		}
 
 		/// <summary>
-		/// This improved replay feature is a work in progress - please do not use it yet.
+		/// This event system feature is a work in progress - please do not use it yet.
 		/// </summary>
-		public void EnableImprovedReplay( string? dataFilesPath )
+		public void EnableEventSystem( string? directory )
 		{
-			improvedReplay = null;
+			eventSystem = null;
 
-			if ( dataFilesPath != null )
+			if ( directory != null )
 			{
-				improvedReplay = new ImprovedReplay( dataFilesPath );
+				eventSystem = new EventSystem( directory );
 			}
 		}
 
@@ -391,8 +393,7 @@ namespace HerboldRacing
 
 							if ( Data.UpdateSessionInfo() )
 							{
-								improvedReplay?.Update( Data );
-								improvedReplay?.RecordSessionInfo( Data );
+								eventSystem?.Update( Data );
 
 								sessionInfoUpdateReady = 1;
 							}
@@ -457,6 +458,8 @@ namespace HerboldRacing
 							sessionInfoAutoResetEvent?.Set();
 						}
 
+						eventSystem?.Record( Data );
+
 						if ( Interlocked.Exchange( ref sessionInfoUpdateReady, 0 ) == 1 )
 						{
 							Debug.WriteLine( "Invoking OnSessionInfo." );
@@ -467,8 +470,6 @@ namespace HerboldRacing
 						if ( ( Data.TickCount - lastTelemetryDataUpdate ) >= UpdateInterval )
 						{
 							lastTelemetryDataUpdate = Data.TickCount;
-
-							improvedReplay?.RecordTelemetryData( Data );
 
 							OnTelemetryData?.Invoke();
 						}
@@ -497,7 +498,7 @@ namespace HerboldRacing
 
 							Data.Reset();
 
-							improvedReplay?.Reset();
+							eventSystem?.Reset();
 						}
 					}
 				}

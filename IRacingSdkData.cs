@@ -240,6 +240,66 @@ namespace HerboldRacing
 		}
 
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public int GetCharArray( string name, char[] array, int index, int count )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( name, index + count - 1, IRacingSdkEnum.VarType.Char );
+
+			return memoryMappedViewAccessor.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public int GetBoolArray( string name, bool[] array, int index, int count )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( name, index + count - 1, IRacingSdkEnum.VarType.Bool );
+
+			return memoryMappedViewAccessor.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public int GetIntArray( string name, int[] array, int index, int count )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( name, index + count - 1, IRacingSdkEnum.VarType.Int );
+
+			return memoryMappedViewAccessor.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public int GetBitFieldArray( string name, uint[] array, int index, int count )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( name, index + count - 1, IRacingSdkEnum.VarType.BitField );
+
+			return memoryMappedViewAccessor.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public int GetFloatArray( string name, float[] array, int index, int count )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( name, index + count - 1, IRacingSdkEnum.VarType.Float );
+
+			return memoryMappedViewAccessor.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public int GetDoubleArray( string name, double[] array, int index, int count )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( name, index + count - 1, IRacingSdkEnum.VarType.Double );
+
+			return memoryMappedViewAccessor.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public object GetValue( string name, int index = 0 )
 		{
 			Debug.Assert( memoryMappedViewAccessor != null );
