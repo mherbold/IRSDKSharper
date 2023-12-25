@@ -141,7 +141,7 @@ This property indicates whether or not the iRacing simulator is running and broa
 Exceptions caught within any of the three background tasks will be passed into `OnException`.
 You will likely want to copy the exception information somewhere and handle it from within your main thread.
 At this point, the background task that fired the exception will terminate.
-You can call `Stop` then `Start` (outside of your event handler) to clean up and restart IRSDKSharper.
+You can call `Stop` then `Start` to clean up and restart IRSDKSharper.
 
 ### public event Action? OnConnected
 The `OnConnected` event is fired when IRSDKSharper has detected that the iRacing simulator has started up and is broadcasting telemetry data.
