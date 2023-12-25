@@ -1,12 +1,14 @@
 # IRSDKSharper
 Alternative C# implementation of the iRacing SDK.
 I created this project because I was frustrated with the performance and features of IRSDKSharp.
-If you find any bugs or have any questions or feedback or ideas or whatever, please feel free to open up a new issue!
+If you find any bugs or have any questions or feedback or ideas or whatever, please feel free to open up a new issue on Github!
+
+https://github.com/mherbold/IRSDKSharper
 
 # How to use it
 Here is an example basic project to demonstrate how to set up and use IRSDKSharper.
 IRSDKSharper can be found within the HerboldRacing namespace.
-```
+```cs
 using HerboldRacing;
 
 public partial class MainWindow : Window
@@ -18,14 +20,15 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         // create an instance of IRSDKSharper
-        irsdkSharper = new IRSDKSharper();
+        irsdk = new IRSDKSharper();
 
         // hook up our event handlers
-        irsdkSharper.OnException += OnException;
-        irsdkSharper.OnConnected += OnConnected;
-        irsdkSharper.OnDisconnected += OnDisconnected;
-        irsdkSharper.OnSessionInfo += OnSessionInfo;
-        irsdkSharper.OnTelemetryData += OnTelemetryData;
+        irsdk.OnException += OnException;
+        irsdk.OnConnected += OnConnected;
+        irsdk.OnDisconnected += OnDisconnected;
+        irsdk.OnSessionInfo += OnSessionInfo;
+        irsdk.OnTelemetryData += OnTelemetryData;
+        irsdk.OnStopped += OnStopped;
 
         // this means fire the OnTelemetryData event every 30 data frames (2 times a second)
         irsdkSharper.UpdateInterval = 30; 
@@ -67,6 +70,11 @@ public partial class MainWindow : Window
 
         Debug.Log( $"OnTelemetryData fired! Lap dist pct for the 6th car in the array is {lapDistPct}." );
     }
+
+    private void OnStopped()
+    {
+        Debug.Log( "OnStopped() fired!" );
+    }
 ```
 
 # IRSDKSharper Class
@@ -83,19 +91,17 @@ IRSDKSharper will create a new connection loop background task.
 This connection loop will wait for the iRacing simulator to load and start broadcasting telemetry data.
 Once telemetry data starts pouring in, IRSDKSharper will terminate the connection loop background task, and create two new background tasks<sup>1</sup>.
 The first new background task handles session information updates, and the second new background task handles telemetry data updates<sup>2</sup>.
-You can check `IsStarted` to see if `Start` has already been called.
-An exception will be thrown if you try to call `Start` while `IsStarted` is true.
 
 ### void Stop()
 IRSDKSharper will terminate all background tasks and clean up everything.
-The `IsStarted` property will become false.
-Do not call `Stop` from within any of the event handlers (it will deadlock).
-An exception will be thrown if you try to call `Stop` while `IsStarted` is false.
+This is done asynchronously, and it is safe to call `Stop()` from within any of your event handlers.
+The `IsStarted` property will become false and the `OnStopped` event will be fired when IRSDKSharper has completely stopped.
+Please call `Stop()` before setting your IRSDKSharper object to null to terminate all of the background tasks.
 
 ### Simulator Remote Control
 There are several functions you can use to remotely control the iRacing simulator.
 These functions control the iRacing simulator by posting broadcast messages to the iRacing simulator window.
-```
+```cs
 CamSwitchPos( IRacingSdkEnum.CamSwitchMode camSwitchMode, int carPosition, int group, int camera )
 CamSwitchNum( IRacingSdkEnum.CamSwitchMode camSwitchMode, int carNumberRaw, int group, int camera )
 CamSetState( IRacingSdkEnum.CameraState cameraState )
@@ -155,6 +161,9 @@ The `OnTelemetryData` event is fired whenever we receive a new frame of telemetr
 IRSDKSharper will not process any more frames of data until your event handler completes.
 For this reason, it is important that you do things quickly in your event handler in order to avoid dropping frames of data.
 
+### public event Action? OnStopped
+The `OnStopped` event is fired when IRSDKSharper has fully stopped.
+
 # IRacingSdkData Class
 All iRacing simulator data can be accessed through the `IRSDKSharper.Data` property.
 
@@ -206,7 +215,7 @@ Ideally there should be no frames dropped after that point.
 
 ## Methods
 To access the actual values of this telemetry data you would use one of the following methods<sup>3</sup>.
-```
+```cs
 char GetChar( string name, int index = 0 )
 bool GetBool( string name, int index = 0 )
 int GetInt( string name, int index = 0 )
@@ -215,9 +224,19 @@ float GetFloat( string name, int index = 0 )
 double GetDouble( string name, int index = 0 )
 ```
 You may also use this generic method as well, which would return the data value as a generic object -
-```
+```cs
 object GetValue( string name, int index = 0 )
 ```
+You may also use array versions of these functions as well, which would return the data values as arrays -
+```cs
+int GetCharArray( string name, char[] array, int index, int count )
+int GetBoolArray( string name, bool[] array, int index, int count )
+int GetIntArray( string name, int[] array, int index, int count )
+int GetBitFieldArray( string name, uint[] array, int index, int count )
+int GetFloatArray( string name, float[] array, int index, int count )
+int GetDoubleArray( string name, double[] array, int index, int count )
+```
+The above array functions return the number of elements retrieved.
 
 # Useful tips
 

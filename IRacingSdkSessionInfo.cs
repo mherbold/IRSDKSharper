@@ -39,6 +39,7 @@ namespace HerboldRacing
 			public int UpdateCount { get; set; }
 
 			public ChassisModel Chassis { get; set; }
+			public DrivetrainModel Drivetrain { get; set; }
 			public SuspensionModel Suspension { get; set; }
 			public TireModel Tires { get; set; }
 
@@ -55,10 +56,13 @@ namespace HerboldRacing
 
 				public class FrontModel
 				{
-					public int AttachLeftSide { get; set; }
+					public string AttachLeftSide { get; set; }
+					public string ArbArms { get; set; }
+					public string ArbDiameter { get; set; }
 					public string BallastForward { get; set; }
 					public string BarPreload { get; set; }
 					public string BrakeBalanceBar { get; set; }
+					public string BrakeBias { get; set; }
 					public string CrossWeight { get; set; }
 					public string FrontBrakeBias { get; set; }
 					public string FrontMc { get; set; }
@@ -73,11 +77,13 @@ namespace HerboldRacing
 					public string TapeConfiguration { get; set; }
 					public string ToeIn { get; set; }
 					public string ValanceClearance { get; set; }
+					public string WingAngle { get; set; }
+					public string WingWicker { get; set; }
 				}
 
 				public class FrontArbModel
 				{
-					public int Attach { get; set; }
+					public string Attach { get; set; }
 					public string ArbArm { get; set; }
 					public string ArbPreload { get; set; }
 					public string ArmAsymmetry { get; set; }
@@ -215,16 +221,44 @@ namespace HerboldRacing
 					public string ArbDiameter { get; set; }
 					public string ArbPreload { get; set; }
 					public string ArmAsymmetry { get; set; }
-					public int Attach { get; set; }
+					public string Attach { get; set; }
 					public string ChainOrSolidLink { get; set; }
 					public string Diameter { get; set; }
 					public string DiffPreload { get; set; }
-					public float FinalDriveRatio { get; set; }
+					public string FinalDriveRatio { get; set; }
 					public string FuelFillTo { get; set; }
+					public string FuelLevel { get; set; }
 					public string LinkSlack { get; set; }
 					public string Preload { get; set; }
-					public float RearEndRatio { get; set; }
+					public string RearEndRatio { get; set; }
 					public string SpoilerAngle { get; set; }
+					public string ToeIn { get; set; }
+					public string WingAngle { get; set; }
+					public string WingWicker { get; set; }
+				}
+			}
+
+			public class DrivetrainModel
+			{
+				public DifferentialModel Differential { get; set; }
+				public TransmissionModel Transmission { get; set; }
+
+				public class DifferentialModel
+				{
+					public string ClutchPlates { get; set; }
+					public string CoastRampAngle { get; set; }
+					public string DriveRampAngle { get; set; }
+					public string Preload { get; set; }
+				}
+
+				public class TransmissionModel
+				{
+					public string FifthGear { get; set; }
+					public string FinalDrive { get; set; }
+					public string FirstGear { get; set; }
+					public string FourthGear { get; set; }
+					public string SecondGear { get; set; }
+					public string ThirdGear { get; set; }
 				}
 			}
 
@@ -239,11 +273,15 @@ namespace HerboldRacing
 
 				public class FrontModel
 				{
+					public string AntiRollBar { get; set; }
 					public string BrakeBias { get; set; }
+					public string CrossWeight { get; set; }
+					public string ToeIn { get; set; }
 				}
 
 				public class LeftFrontModel
 				{
+					public string BumpStiffness { get; set; }
 					public string Camber { get; set; }
 					public string Caster { get; set; }
 					public string ColdPressure { get; set; }
@@ -251,23 +289,28 @@ namespace HerboldRacing
 					public string LastHotPressure { get; set; }
 					public string LastTempsOMI { get; set; }
 					public string TreadRemaining { get; set; }
+					public string ReboundStiffness { get; set; }
 					public string RideHeight { get; set; }
 					public string SpringPerchOffset { get; set; }
 				}
 
 				public class LeftRearModel
 				{
+					public string BumpStiffness { get; set; }
 					public string Camber { get; set; }
 					public string ColdPressure { get; set; }
 					public string CornerWeight { get; set; }
 					public string LastHotPressure { get; set; }
 					public string LastTempsOMI { get; set; }
 					public string TreadRemaining { get; set; }
+					public string ReboundStiffness { get; set; }
 					public string RideHeight { get; set; }
+					public string SpringPerchOffset { get; set; }
 				}
 
 				public class RightFrontModel
 				{
+					public string BumpStiffness { get; set; }
 					public string Camber { get; set; }
 					public string Caster { get; set; }
 					public string ColdPressure { get; set; }
@@ -275,25 +318,30 @@ namespace HerboldRacing
 					public string LastHotPressure { get; set; }
 					public string LastTempsIMO { get; set; }
 					public string TreadRemaining { get; set; }
+					public string ReboundStiffness { get; set; }
 					public string RideHeight { get; set; }
 					public string SpringPerchOffset { get; set; }
 				}
 
 				public class RightRearModel
 				{
+					public string BumpStiffness { get; set; }
 					public string Camber { get; set; }
 					public string ColdPressure { get; set; }
 					public string CornerWeight { get; set; }
 					public string LastHotPressure { get; set; }
 					public string LastTempsIMO { get; set; }
 					public string TreadRemaining { get; set; }
+					public string ReboundStiffness { get; set; }
 					public string RideHeight { get; set; }
+					public string SpringPerchOffset { get; set; }
 				}
 
 				public class RearModel
 				{
-					public int AntiRollBar { get; set; }
+					public string AntiRollBar { get; set; }
 					public string FuelLevel { get; set; }
+					public string ToeIn { get; set; }
 				}
 			}
 
