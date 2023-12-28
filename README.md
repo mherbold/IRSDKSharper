@@ -101,7 +101,7 @@ Please call `Stop()` before setting your IRSDKSharper object to null to terminat
 ### Simulator Remote Control
 There are several functions you can use to remotely control the iRacing simulator.
 These functions control the iRacing simulator by posting broadcast messages to the iRacing simulator window.
-```cs
+```
 CamSwitchPos( IRacingSdkEnum.CamSwitchMode camSwitchMode, int carPosition, int group, int camera )
 CamSwitchNum( IRacingSdkEnum.CamSwitchMode camSwitchMode, int carNumberRaw, int group, int camera )
 CamSetState( IRacingSdkEnum.CameraState cameraState )
@@ -181,6 +181,7 @@ Each item in this dictionary has the following properties -
 ```
 item.VarType
 item.Offset
+item.Bytes
 item.Count
 item.Name
 item.Desc
@@ -215,7 +216,7 @@ Ideally there should be no frames dropped after that point.
 
 ## Methods
 To access the actual values of this telemetry data you would use one of the following methods<sup>3</sup>.
-```cs
+```
 char GetChar( string name, int index = 0 )
 bool GetBool( string name, int index = 0 )
 int GetInt( string name, int index = 0 )
@@ -224,11 +225,11 @@ float GetFloat( string name, int index = 0 )
 double GetDouble( string name, int index = 0 )
 ```
 You may also use this generic method as well, which would return the data value as a generic object -
-```cs
+```
 object GetValue( string name, int index = 0 )
 ```
 You may also use array versions of these functions as well, which would return the data values as arrays -
-```cs
+```
 int GetCharArray( string name, char[] array, int index, int count )
 int GetBoolArray( string name, bool[] array, int index, int count )
 int GetIntArray( string name, int[] array, int index, int count )
@@ -237,6 +238,31 @@ int GetFloatArray( string name, float[] array, int index, int count )
 int GetDoubleArray( string name, double[] array, int index, int count )
 ```
 The above array functions return the number of elements retrieved.
+
+There are now even faster versions of the telemetry data functions that you can use that skips the dictionary lookup -
+```
+char GetChar( IRacingSdkDatum datum, int index = 0 )
+bool GetBool( IRacingSdkDatum datum, int index = 0 )
+int GetInt( IRacingSdkDatum datum, int index = 0 )
+uint GetBitField( IRacingSdkDatum datum, int index = 0 )
+float GetFloat( IRacingSdkDatum datum, int index = 0 )
+double GetDouble( IRacingSdkDatum datum, int index = 0 )
+
+int GetCharArray( IRacingSdkDatum datum, char[] array, int index, int count )
+int GetBoolArray( IRacingSdkDatum datum, bool[] array, int index, int count )
+int GetIntArray( IRacingSdkDatum datum, int[] array, int index, int count )
+int GetBitFieldArray( IRacingSdkDatum datum, uint[] array, int index, int count )
+int GetFloatArray( IRacingSdkDatum datum, float[] array, int index, int count )
+int GetDoubleArray( IRacingSdkDatum datum, double[] array, int index, int count )
+```
+To use these you could do something like:
+```cs
+// you would do this once and save it somewhere
+var carIdxLapDistPctDatum = irsdkSharper.Data.TelemetryDataProperties[ "CarIdxLapDistPct ];
+
+// and then now you can repeatedly call this for the most blisteringly fastest speed possible
+var lapDistPct = irsdkSharper.Data.GetFloat( carIdxLapDistPctDatum, 5 );
+```
 
 # Useful tips
 

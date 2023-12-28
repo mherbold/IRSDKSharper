@@ -12,15 +12,17 @@ namespace HerboldRacing
 		public IRacingSdkEnum.VarType VarType { get; }
 		public int Offset { get; }
 		public int Count { get; }
+		public int Bytes { get; }
 		public string Name { get; }
 		public string Desc { get; }
 		public string Unit { get; }
 
-		public IRacingSdkDatum( IRacingSdkEnum.VarType varType, int offset, int count, string name, string desc, string unit )
+		public IRacingSdkDatum( IRacingSdkEnum.VarType varType, int offset, int count, int bytes, string name, string desc, string unit )
 		{
 			VarType = varType;
 			Offset = offset;
 			Count = count;
+			Bytes = bytes;
 			Name = name;
 			Desc = desc;
 			Unit = unit;

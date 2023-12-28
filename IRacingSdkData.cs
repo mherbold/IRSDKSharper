@@ -104,6 +104,23 @@ namespace HerboldRacing
 					var type = memoryMappedViewAccessor.ReadInt32( VarHeaderOffset + varOffset );
 					var offset = memoryMappedViewAccessor.ReadInt32( VarHeaderOffset + varOffset + 4 );
 					var count = memoryMappedViewAccessor.ReadInt32( VarHeaderOffset + varOffset + 8 );
+					var bytes = 0;
+
+					switch ( (IRacingSdkEnum.VarType) type )
+					{
+						case IRacingSdkEnum.VarType.Char:
+						case IRacingSdkEnum.VarType.Bool: 
+							bytes = 1;
+							break;
+						case IRacingSdkEnum.VarType.Int:
+						case IRacingSdkEnum.VarType.BitField:
+						case IRacingSdkEnum.VarType.Float:
+							bytes = 4;
+							break;
+						case IRacingSdkEnum.VarType.Double:
+							bytes = 8;
+							break;
+					}
 
 					var name = ReadString( VarHeaderOffset + varOffset + 16, nameArray );
 					var desc = ReadString( VarHeaderOffset + varOffset + 48, descArray );
@@ -145,7 +162,7 @@ namespace HerboldRacing
 
 					#endregion
 
-					TelemetryDataProperties[ name ] = new IRacingSdkDatum( (IRacingSdkEnum.VarType) type, offset, count, name, desc, unit );
+					TelemetryDataProperties[ name ] = new IRacingSdkDatum( (IRacingSdkEnum.VarType) type, offset, count, bytes, name, desc, unit );
 				}
 			}
 		}
@@ -190,53 +207,13 @@ namespace HerboldRacing
 		}
 
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
-		public bool GetBool( string name, int index = 0 )
+		public char GetChar( IRacingSdkDatum datum, int index = 0 )
 		{
 			Debug.Assert( memoryMappedViewAccessor != null );
 
-			Validate( name, index, IRacingSdkEnum.VarType.Bool );
+			Validate( datum, index, IRacingSdkEnum.VarType.Char );
 
-			return memoryMappedViewAccessor.ReadBoolean( Offset + TelemetryDataProperties[ name ].Offset + index );
-		}
-
-		[MethodImpl( MethodImplOptions.AggressiveInlining )]
-		public int GetInt( string name, int index = 0 )
-		{
-			Debug.Assert( memoryMappedViewAccessor != null );
-
-			Validate( name, index, IRacingSdkEnum.VarType.Int );
-
-			return memoryMappedViewAccessor.ReadInt32( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
-		}
-
-		[MethodImpl( MethodImplOptions.AggressiveInlining )]
-		public uint GetBitField( string name, int index = 0 )
-		{
-			Debug.Assert( memoryMappedViewAccessor != null );
-
-			Validate( name, index, IRacingSdkEnum.VarType.BitField );
-
-			return memoryMappedViewAccessor.ReadUInt32( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
-		}
-
-		[MethodImpl( MethodImplOptions.AggressiveInlining )]
-		public float GetFloat( string name, int index = 0 )
-		{
-			Debug.Assert( memoryMappedViewAccessor != null );
-
-			Validate( name, index, IRacingSdkEnum.VarType.Float );
-
-			return memoryMappedViewAccessor.ReadSingle( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
-		}
-
-		[MethodImpl( MethodImplOptions.AggressiveInlining )]
-		public double GetDouble( string name, int index = 0 )
-		{
-			Debug.Assert( memoryMappedViewAccessor != null );
-
-			Validate( name, index, IRacingSdkEnum.VarType.Double );
-
-			return memoryMappedViewAccessor.ReadDouble( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
+			return memoryMappedViewAccessor.ReadChar( Offset + datum.Offset + index );
 		}
 
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
@@ -250,6 +227,26 @@ namespace HerboldRacing
 		}
 
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public bool GetBool( string name, int index = 0 )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( name, index, IRacingSdkEnum.VarType.Bool );
+
+			return memoryMappedViewAccessor.ReadBoolean( Offset + TelemetryDataProperties[ name ].Offset + index );
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public bool GetBool( IRacingSdkDatum datum, int index = 0 )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( datum, index, IRacingSdkEnum.VarType.Bool );
+
+			return memoryMappedViewAccessor.ReadBoolean( Offset + datum.Offset + index );
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetBoolArray( string name, bool[] array, int index, int count )
 		{
 			Debug.Assert( memoryMappedViewAccessor != null );
@@ -257,6 +254,36 @@ namespace HerboldRacing
 			Validate( name, index + count - 1, IRacingSdkEnum.VarType.Bool );
 
 			return memoryMappedViewAccessor.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public int GetBoolArray( IRacingSdkDatum datum, bool[] array, int index, int count )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( datum, index + count - 1, IRacingSdkEnum.VarType.Bool );
+
+			return memoryMappedViewAccessor.ReadArray( Offset + datum.Offset, array, index, count );
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public int GetInt( string name, int index = 0 )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( name, index, IRacingSdkEnum.VarType.Int );
+
+			return memoryMappedViewAccessor.ReadInt32( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public int GetInt( IRacingSdkDatum datum, int index = 0 )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( datum, index, IRacingSdkEnum.VarType.Int );
+
+			return memoryMappedViewAccessor.ReadInt32( Offset + datum.Offset + index );
 		}
 
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
@@ -270,6 +297,36 @@ namespace HerboldRacing
 		}
 
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public int GetIntArray( IRacingSdkDatum datum, int[] array, int index, int count )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( datum, index + count - 1, IRacingSdkEnum.VarType.Int );
+
+			return memoryMappedViewAccessor.ReadArray( Offset + datum.Offset, array, index, count );
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public uint GetBitField( string name, int index = 0 )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( name, index, IRacingSdkEnum.VarType.BitField );
+
+			return memoryMappedViewAccessor.ReadUInt32( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public uint GetBitField( IRacingSdkDatum datum, int index = 0 )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( datum, index, IRacingSdkEnum.VarType.BitField );
+
+			return memoryMappedViewAccessor.ReadUInt32( Offset + datum.Offset + index * 4 );
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetBitFieldArray( string name, uint[] array, int index, int count )
 		{
 			Debug.Assert( memoryMappedViewAccessor != null );
@@ -277,6 +334,36 @@ namespace HerboldRacing
 			Validate( name, index + count - 1, IRacingSdkEnum.VarType.BitField );
 
 			return memoryMappedViewAccessor.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public int GetBitFieldArray( IRacingSdkDatum datum, uint[] array, int index, int count )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( datum, index + count - 1, IRacingSdkEnum.VarType.BitField );
+
+			return memoryMappedViewAccessor.ReadArray( Offset + datum.Offset, array, index, count );
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public float GetFloat( string name, int index = 0 )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( name, index, IRacingSdkEnum.VarType.Float );
+
+			return memoryMappedViewAccessor.ReadSingle( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public float GetFloat( IRacingSdkDatum datum, int index = 0 )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( datum, index, IRacingSdkEnum.VarType.Float );
+
+			return memoryMappedViewAccessor.ReadSingle( Offset + datum.Offset + index * 4 );
 		}
 
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
@@ -290,6 +377,36 @@ namespace HerboldRacing
 		}
 
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public int GetFloatArray( IRacingSdkDatum datum, float[] array, int index, int count )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( datum, index + count - 1, IRacingSdkEnum.VarType.Float );
+
+			return memoryMappedViewAccessor.ReadArray( Offset + datum.Offset, array, index, count );
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public double GetDouble( string name, int index = 0 )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( name, index, IRacingSdkEnum.VarType.Double );
+
+			return memoryMappedViewAccessor.ReadDouble( Offset + TelemetryDataProperties[ name ].Offset + index * 8 );
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public double GetDouble( IRacingSdkDatum datum, int index = 0 )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( datum, index, IRacingSdkEnum.VarType.Double );
+
+			return memoryMappedViewAccessor.ReadDouble( Offset + datum.Offset + index * 8 );
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetDoubleArray( string name, double[] array, int index, int count )
 		{
 			Debug.Assert( memoryMappedViewAccessor != null );
@@ -297,6 +414,16 @@ namespace HerboldRacing
 			Validate( name, index + count - 1, IRacingSdkEnum.VarType.Double );
 
 			return memoryMappedViewAccessor.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public int GetDoubleArray( IRacingSdkDatum datum, double[] array, int index, int count )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( datum, index + count - 1, IRacingSdkEnum.VarType.Double );
+
+			return memoryMappedViewAccessor.ReadArray( Offset + datum.Offset, array, index, count );
 		}
 
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
@@ -336,6 +463,20 @@ namespace HerboldRacing
 			if ( ( type != null ) && ( iRacingSdkDatum.VarType != type ) )
 			{
 				throw new Exception( $"{name}, {index}: TelemetryDataProperties[ name ].VarType != {type}" );
+			}
+		}
+
+		[Conditional( "DEBUG" )]
+		private void Validate( IRacingSdkDatum datum, int index, IRacingSdkEnum.VarType? type )
+		{
+			if ( index >= datum.Count )
+			{
+				throw new Exception( $"{datum.Name}, {index}: index >= TelemetryDataProperties[ name ].count" );
+			}
+
+			if ( ( type != null ) && ( datum.VarType != type ) )
+			{
+				throw new Exception( $"{datum.Name}, {index}: TelemetryDataProperties[ name ].VarType != {type}" );
 			}
 		}
 
