@@ -40,7 +40,7 @@ namespace HerboldRacing
 				}
 				else
 				{
-					streamWriter = new StreamWriter( filePath, false, Encoding.UTF8, BufferSize );
+					streamWriter = new StreamWriter( filePath, true, Encoding.UTF8, BufferSize );
 				}
 			}
 		}
@@ -60,8 +60,9 @@ namespace HerboldRacing
 			{
 				var sessionNum = data.GetInt( "SessionNum" );
 				var sessionTime = data.GetDouble( "SessionTime" );
+				var sessionTick = data.GetInt( "SessionTick" );
 
-				eventTracks.Update( sessionNum, sessionTime, stringBuilder, data );
+				eventTracks.Update( sessionNum, sessionTime, sessionTick, stringBuilder, data );
 
 				if ( stringBuilder.Length > 0 )
 				{
@@ -98,7 +99,9 @@ namespace HerboldRacing
 		public class EventTracks
 		{
 			public EventTrack<uint> sessionFlagsEventTrack = new( "SessionFlags", 0 );
-			public EventTrack<int> paceModeEventTrack = new( "PaceMode", 0 );
+			public EventTrack<int> paceModeEventTrack = new( "PaceMode", (int) IRacingSdkEnum.PaceMode.SingleFileStart );
+			public EventTrack<int> carLeftRightTrack = new( "CarLeftRight", (int) IRacingSdkEnum.CarLeftRight.Off );
+			public EventTrack<float> fuelLevelTrack = new( "FuelLevel", 0, 120 );
 
 			public EventTrack<uint>[] carIdxSessionFlagsEventTracks = new EventTrack<uint>[ MaxNumCars ];
 			public EventTrack<int>[] carIdxPositionEventTracks = new EventTrack<int>[ MaxNumCars ];
@@ -106,7 +109,14 @@ namespace HerboldRacing
 			public EventTrack<int>[] carIdxPaceLineEventTracks = new EventTrack<int>[ MaxNumCars ];
 			public EventTrack<int>[] carIdxPaceRowEventTracks = new EventTrack<int>[ MaxNumCars ];
 			public EventTrack<uint>[] carIdxPaceFlagsEventTracks = new EventTrack<uint>[ MaxNumCars ];
+
 			public EventTrack<int>[] curDriverIncidentCountEventTracks = new EventTrack<int>[ MaxNumCars ];
+
+			public EventTrack<int>[] qualifyPositionEventTracks = new EventTrack<int>[ MaxNumCars ];
+			public EventTrack<int>[] qualifyClassPositionEventTracks = new EventTrack<int>[ MaxNumCars ];
+			public EventTrack<int>[] qualifyFastestLapEventTracks = new EventTrack<int>[ MaxNumCars ];
+			public EventTrack<float>[] qualifyFastestTimeEventTracks = new EventTrack<float>[ MaxNumCars ];
+
 
 			public EventTracks()
 			{
@@ -118,7 +128,13 @@ namespace HerboldRacing
 					carIdxPaceLineEventTracks[ i ] = new( $"CarIdxPaceLine.{i}", -1 );
 					carIdxPaceRowEventTracks[ i ] = new( $"CarIdxPaceRow.{i}", -1 );
 					carIdxPaceFlagsEventTracks[ i ] = new( $"CarIdxPaceFlags.{i}", 0 );
+
 					curDriverIncidentCountEventTracks[ i ] = new( $"CurDriverIncidentCount.{i}", -1 );
+
+					qualifyPositionEventTracks[ i ] = new( $"QualifyPosition.{i}", -1 );
+					qualifyClassPositionEventTracks[ i ] = new( $"QualifyClassPosition.{i}", -1 );
+					qualifyFastestLapEventTracks[ i ] = new( $"QualifyFastestLap.{i}", -1 );
+					qualifyFastestTimeEventTracks[ i ] = new( $"QualifyFastestTime.{i}", 0.0f );
 				}
 			}
 
@@ -126,6 +142,8 @@ namespace HerboldRacing
 			{
 				sessionFlagsEventTrack.Reset();
 				paceModeEventTrack.Reset();
+				carLeftRightTrack.Reset();
+				fuelLevelTrack.Reset();
 
 				for ( var i = 0; i < MaxNumCars; i++ )
 				{
@@ -135,17 +153,27 @@ namespace HerboldRacing
 					carIdxPaceLineEventTracks[ i ].Reset();
 					carIdxPaceRowEventTracks[ i ].Reset();
 					carIdxPaceFlagsEventTracks[ i ].Reset();
+
 					curDriverIncidentCountEventTracks[ i ].Reset();
+
+					qualifyPositionEventTracks[ i ].Reset();
+					qualifyClassPositionEventTracks[ i ].Reset();
+					qualifyFastestLapEventTracks[ i ].Reset();
+					qualifyFastestTimeEventTracks[ i ].Reset();
 				}
 			}
 
-			public void Update( int sessionNum, double sessionTime, StringBuilder stringBuilder, IRacingSdkData data )
+			public void Update( int sessionNum, double sessionTime, int sessionTick, StringBuilder stringBuilder, IRacingSdkData data )
 			{
 				var sessionFlags = data.GetBitField( "SessionFlags" );
 				var paceMode = data.GetInt( "PaceMode" );
+				var carLeftRight = data.GetInt( "CarLeftRight" );
+				var fuelLevel = data.GetFloat( "FuelLevel" );
 
-				sessionFlagsEventTrack.Update( sessionNum, sessionTime, stringBuilder, sessionFlags );
-				paceModeEventTrack.Update( sessionNum, sessionTime, stringBuilder, paceMode );
+				sessionFlagsEventTrack.Update( sessionNum, sessionTime, sessionTick, stringBuilder, sessionFlags );
+				paceModeEventTrack.Update( sessionNum, sessionTime, sessionTick, stringBuilder, paceMode );
+				carLeftRightTrack.Update( sessionNum, sessionTime, sessionTick, stringBuilder, carLeftRight );
+				fuelLevelTrack.Update( sessionNum, sessionTime, sessionTick, stringBuilder, fuelLevel );
 
 				uint[] carIdxSessionFlags = new uint[ MaxNumCars ];
 				int[] carIdxPaceLine = new int[ MaxNumCars ];
@@ -159,10 +187,10 @@ namespace HerboldRacing
 
 				for ( var i = 0; i < MaxNumCars; i++ )
 				{
-					carIdxSessionFlagsEventTracks[ i ].Update( sessionNum, sessionTime, stringBuilder, carIdxSessionFlags[ i ] );
-					carIdxPaceLineEventTracks[ i ].Update( sessionNum, sessionTime, stringBuilder, carIdxPaceLine[ i ] );
-					carIdxPaceRowEventTracks[ i ].Update( sessionNum, sessionTime, stringBuilder, carIdxPaceRow[ i ] );
-					carIdxPaceFlagsEventTracks[ i ].Update( sessionNum, sessionTime, stringBuilder, carIdxPaceFlags[ i ] );
+					carIdxSessionFlagsEventTracks[ i ].Update( sessionNum, sessionTime, sessionTick, stringBuilder, carIdxSessionFlags[ i ] );
+					carIdxPaceLineEventTracks[ i ].Update( sessionNum, sessionTime, sessionTick, stringBuilder, carIdxPaceLine[ i ] );
+					carIdxPaceRowEventTracks[ i ].Update( sessionNum, sessionTime, sessionTick, stringBuilder, carIdxPaceRow[ i ] );
+					carIdxPaceFlagsEventTracks[ i ].Update( sessionNum, sessionTime, sessionTick, stringBuilder, carIdxPaceFlags[ i ] );
 				}
 
 				var sessionInfo = data.SessionInfo;
@@ -173,7 +201,22 @@ namespace HerboldRacing
 
 					if ( carIdx != -1 )
 					{
-						curDriverIncidentCountEventTracks[ carIdx ].Update( sessionNum, sessionTime, stringBuilder, driver.CurDriverIncidentCount );
+						curDriverIncidentCountEventTracks[ carIdx ].Update( sessionNum, sessionTime, sessionTick, stringBuilder, driver.CurDriverIncidentCount );
+					}
+				}
+
+				var qualifyPositions = sessionInfo.SessionInfo.Sessions[ sessionNum ].QualifyPositions;
+
+				if ( qualifyPositions != null )
+				{
+					foreach ( var qualifyPosition in qualifyPositions )
+					{
+						var carIdx = qualifyPosition.CarIdx;
+
+						qualifyPositionEventTracks[ carIdx ].Update( sessionNum, sessionTime, sessionTick, stringBuilder, qualifyPosition.Position );
+						qualifyClassPositionEventTracks[ carIdx ].Update( sessionNum, sessionTime, sessionTick, stringBuilder, qualifyPosition.ClassPosition );
+						qualifyFastestLapEventTracks[ carIdx ].Update( sessionNum, sessionTime, sessionTick, stringBuilder, qualifyPosition.FastestLap );
+						qualifyFastestTimeEventTracks[ carIdx ].Update( sessionNum, sessionTime, sessionTick, stringBuilder, qualifyPosition.FastestTime );
 					}
 				}
 			}
@@ -186,12 +229,15 @@ namespace HerboldRacing
 				private T retainedValue;
 				private T currentValue;
 
+				private int sessionTickMask;
+
 				private List<Event> events = new();
 
-				public EventTrack( string trackName, T defaultValue )
+				public EventTrack( string trackName, T defaultValue, int sessionTickMask = 1 )
 				{
 					this.trackName = trackName;
 					this.defaultValue = defaultValue;
+					this.sessionTickMask = sessionTickMask;
 
 					retainedValue = defaultValue;
 					currentValue = defaultValue;
@@ -205,15 +251,18 @@ namespace HerboldRacing
 					events.Clear();
 				}
 
-				public void Update( int sessionNum, double sessionTime, StringBuilder stringBuilder, T value )
+				public void Update( int sessionNum, double sessionTime, int sessionTick, StringBuilder stringBuilder, T value )
 				{
-					if ( !retainedValue.Equals( value ) )
+					if ( ( sessionTick % sessionTickMask ) == 0 )
 					{
-						stringBuilder.AppendLine( $" {trackName}: {value}" );
+						if ( !retainedValue.Equals( value ) )
+						{
+							stringBuilder.AppendLine( $" {trackName}: {value}" );
 
-						events.Add( new Event( sessionNum, sessionTime, value ) );
+							events.Add( new Event( sessionNum, sessionTime, value ) );
 
-						retainedValue = value;
+							retainedValue = value;
+						}
 					}
 				}
 
