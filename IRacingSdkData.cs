@@ -104,24 +104,7 @@ namespace HerboldRacing
 					var type = memoryMappedViewAccessor.ReadInt32( VarHeaderOffset + varOffset );
 					var offset = memoryMappedViewAccessor.ReadInt32( VarHeaderOffset + varOffset + 4 );
 					var count = memoryMappedViewAccessor.ReadInt32( VarHeaderOffset + varOffset + 8 );
-					var bytes = 0;
-
-					switch ( (IRacingSdkEnum.VarType) type )
-					{
-						case IRacingSdkEnum.VarType.Char:
-						case IRacingSdkEnum.VarType.Bool: 
-							bytes = 1;
-							break;
-						case IRacingSdkEnum.VarType.Int:
-						case IRacingSdkEnum.VarType.BitField:
-						case IRacingSdkEnum.VarType.Float:
-							bytes = 4;
-							break;
-						case IRacingSdkEnum.VarType.Double:
-							bytes = 8;
-							break;
-					}
-
+					var countAsTime = memoryMappedViewAccessor.ReadBoolean( VarHeaderOffset + varOffset + 12 );
 					var name = ReadString( VarHeaderOffset + varOffset + 16, nameArray );
 					var desc = ReadString( VarHeaderOffset + varOffset + 48, descArray );
 					var unit = ReadString( VarHeaderOffset + varOffset + 112, unitArray );
@@ -162,7 +145,7 @@ namespace HerboldRacing
 
 					#endregion
 
-					TelemetryDataProperties[ name ] = new IRacingSdkDatum( (IRacingSdkEnum.VarType) type, offset, count, bytes, name, desc, unit );
+					TelemetryDataProperties[ name ] = new IRacingSdkDatum( (IRacingSdkEnum.VarType) type, offset, count, countAsTime, name, desc, unit );
 				}
 			}
 		}
@@ -283,7 +266,7 @@ namespace HerboldRacing
 
 			Validate( datum, index, IRacingSdkEnum.VarType.Int );
 
-			return memoryMappedViewAccessor.ReadInt32( Offset + datum.Offset + index );
+			return memoryMappedViewAccessor.ReadInt32( Offset + datum.Offset + index * 4 );
 		}
 
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
