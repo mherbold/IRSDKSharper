@@ -27,7 +27,7 @@ namespace HerboldRacing
 		public event Action? OnTelemetryData = null;
 		public event Action? OnStopped = null;
 
-		private int isStarted = 0;
+		private int keepThreadsAlive = 0;
 
 		private bool connectionLoopRunning = false;
 		private bool telemetryDataLoopRunning = false;
@@ -42,7 +42,6 @@ namespace HerboldRacing
 		private int lastTelemetryDataUpdate = -1;
 
 		private int lastSessionInfoUpdate = 0;
-		private int sessionInfoUpdateChangedCount = 0;
 		private int sessionInfoUpdateReady = 0;
 
 		private readonly uint broadcastWindowMessage = Windows.RegisterWindowMessage( BroadcastMessageName );
@@ -58,8 +57,8 @@ namespace HerboldRacing
 		/// irsdk.OnException += OnException;
 		/// irsdk.OnConnected += OnConnected;
 		/// irsdk.OnDisconnected += OnDisconnected;
-		/// irsdk.OnTelemetryData += OnTelemetryData;
 		/// irsdk.OnSessionInfo += OnSessionInfo;
+		/// irsdk.OnTelemetryData += OnTelemetryData;
 		/// irsdk.OnStopped += OnStopped;
 		/// 
 		/// irsdkSharper.Start();
@@ -75,7 +74,7 @@ namespace HerboldRacing
 
 		public void Start()
 		{
-			if ( Interlocked.Exchange( ref isStarted, 1 ) == 1 )
+			if ( Interlocked.Exchange( ref keepThreadsAlive, 1 ) == 1 )
 			{
 				Debug.WriteLine( "IRSDKSharper has already been started or is starting." );
 			}
@@ -93,7 +92,7 @@ namespace HerboldRacing
 
 		public void Stop()
 		{
-			if ( Interlocked.Exchange( ref isStarted, 0 ) == 0 )
+			if ( Interlocked.Exchange( ref keepThreadsAlive, 0 ) == 0 )
 			{
 				Debug.WriteLine( "IRSDKSharper has already been stopped or is stopping." );
 			}
@@ -149,7 +148,6 @@ namespace HerboldRacing
 					lastTelemetryDataUpdate = -1;
 
 					lastSessionInfoUpdate = 0;
-					sessionInfoUpdateChangedCount = 0;
 					sessionInfoUpdateReady = 0;
 
 					eventSystem?.Reset();
@@ -302,7 +300,7 @@ namespace HerboldRacing
 			{
 				connectionLoopRunning = true;
 
-				while ( isStarted == 1 )
+				while ( keepThreadsAlive == 1 )
 				{
 					if ( memoryMappedFile == null )
 					{
@@ -379,27 +377,20 @@ namespace HerboldRacing
 			{
 				sessionInfoLoopRunning = true;
 
-				while ( isStarted == 1 )
+				while ( keepThreadsAlive == 1 )
 				{
 					Debug.WriteLine( "Waiting for session info event." );
 
 					sessionInfoAutoResetEvent?.WaitOne();
 
-					while ( sessionInfoUpdateChangedCount > 0 )
+					if ( ( keepThreadsAlive == 1 ) && IsConnected )
 					{
-						if ( isStarted == 1 )
+						Debug.WriteLine( "Updating session info." );
+
+						if ( Data.UpdateSessionInfo() )
 						{
-							Debug.WriteLine( "Updating session info." );
-
-							if ( Data.UpdateSessionInfo() )
-							{
-								eventSystem?.Update( Data );
-
-								sessionInfoUpdateReady = 1;
-							}
+							sessionInfoUpdateReady = 1;
 						}
-
-						Interlocked.Decrement( ref sessionInfoUpdateChangedCount );
 					}
 				}
 
@@ -425,7 +416,7 @@ namespace HerboldRacing
 			{
 				telemetryDataLoopRunning = true;
 
-				while ( isStarted == 1 )
+				while ( keepThreadsAlive == 1 )
 				{
 					var signalReceived = simulatorAutoResetEvent?.WaitOne( 250 ) ?? false;
 
@@ -447,17 +438,18 @@ namespace HerboldRacing
 
 						Data.Update();
 
-						if ( lastSessionInfoUpdate != Data.SessionInfoUpdate )
+						if ( ( lastSessionInfoUpdate != Data.SessionInfoUpdate ) || ( Data.TickCount >= Data.retryUpdateSessionInfoAfterTickCount ) )
 						{
 							Debug.WriteLine( "Data.SessionInfoUpdate has changed." );
 
 							lastSessionInfoUpdate = Data.SessionInfoUpdate;
 
-							Interlocked.Increment( ref sessionInfoUpdateChangedCount );
+							Data.retryUpdateSessionInfoAfterTickCount = int.MaxValue;
 
 							sessionInfoAutoResetEvent?.Set();
 						}
 
+						eventSystem?.Update( Data );
 						eventSystem?.Record( Data );
 
 						if ( Interlocked.Exchange( ref sessionInfoUpdateReady, 0 ) == 1 )
@@ -479,16 +471,6 @@ namespace HerboldRacing
 						if ( IsConnected )
 						{
 							Debug.WriteLine( "The iRacing simulator is no longer running." );
-
-							if ( sessionInfoUpdateChangedCount > 0 )
-							{
-								Debug.WriteLine( "Draining sessionInfoUpdateChangedCount." );
-
-								while ( sessionInfoUpdateChangedCount > 0 )
-								{
-									Thread.Sleep( 0 );
-								}
-							}
 
 							IsConnected = false;
 

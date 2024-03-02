@@ -23,23 +23,28 @@ namespace HerboldRacing
 
 		public void Update( IRacingSdkData data )
 		{
-			if ( subSessionID != data.SessionInfo.WeekendInfo.SubSessionID )
+			var sessionInfo = data.SessionInfo;
+
+			if ( sessionInfo != null )
 			{
-				Reset( data );
-
-				subSessionID = data.SessionInfo.WeekendInfo.SubSessionID;
-
-				Directory.CreateDirectory( directory );
-
-				var filePath = Path.Combine( directory, $"subses{subSessionID}.yaml" );
-
-				if ( data.SessionInfo.WeekendInfo.SimMode == "replay" )
+				if ( subSessionID != sessionInfo.WeekendInfo.SubSessionID )
 				{
-					LoadEvents( filePath );
-				}
-				else
-				{
-					streamWriter = new StreamWriter( filePath, true, Encoding.UTF8, BufferSize );
+					Reset( data );
+
+					subSessionID = sessionInfo.WeekendInfo.SubSessionID;
+
+					Directory.CreateDirectory( directory );
+
+					var filePath = Path.Combine( directory, $"subses{subSessionID}.yaml" );
+
+					if ( sessionInfo.WeekendInfo.SimMode == "replay" )
+					{
+						LoadEvents( filePath );
+					}
+					else
+					{
+						streamWriter = new StreamWriter( filePath, true, Encoding.UTF8, BufferSize );
+					}
 				}
 			}
 		}

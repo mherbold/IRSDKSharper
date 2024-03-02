@@ -12,7 +12,7 @@ namespace HerboldRacing
 	{
 		public readonly Dictionary<string, IRacingSdkDatum> TelemetryDataProperties = new();
 		public string SessionInfoYaml { get; private set; } = string.Empty;
-		public IRacingSdkSessionInfo SessionInfo { get; private set; } = new();
+		public IRacingSdkSessionInfo? SessionInfo { get; private set; } = null;
 
 		public int Version => memoryMappedViewAccessor?.ReadInt32( 0 ) ?? 0;
 		public int Status => memoryMappedViewAccessor?.ReadInt32( 4 ) ?? 0;
@@ -29,6 +29,10 @@ namespace HerboldRacing
 		public int Offset { get; private set; } = 0;
 		public int FramesDropped { get; private set; } = 0;
 
+		public int retryUpdateSessionInfoAfterTickCount = int.MaxValue;
+
+		private readonly bool throwYamlExceptions;
+
 		private readonly Encoding encoding;
 		private readonly IDeserializer deserializer;
 
@@ -36,6 +40,8 @@ namespace HerboldRacing
 
 		public IRacingSdkData( bool throwYamlExceptions )
 		{
+			this.throwYamlExceptions = throwYamlExceptions;
+
 			Encoding.RegisterProvider( CodePagesEncodingProvider.Instance );
 
 			encoding = Encoding.GetEncoding( 1252 );
@@ -59,11 +65,13 @@ namespace HerboldRacing
 		{
 			TelemetryDataProperties.Clear();
 			SessionInfoYaml = string.Empty;
-			SessionInfo = new();
+			SessionInfo = null;
 
 			TickCount = -1;
 			Offset = 0;
 			FramesDropped = 0;
+
+			retryUpdateSessionInfoAfterTickCount = int.MaxValue;
 		}
 
 		public void Update()
@@ -166,13 +174,27 @@ namespace HerboldRacing
 
 				var stringReader = new StringReader( SessionInfoYaml );
 
-				var sessionInfo = deserializer.Deserialize<IRacingSdkSessionInfo>( stringReader );
-
-				if ( sessionInfo != null )
+				try
 				{
-					SessionInfo = sessionInfo;
+					var sessionInfo = deserializer.Deserialize<IRacingSdkSessionInfo>( stringReader );
 
-					return true;
+					if ( sessionInfo != null )
+					{
+						SessionInfo = sessionInfo;
+
+						return true;
+					}
+				}
+				catch ( Exception )
+				{
+					if ( throwYamlExceptions )
+					{
+						throw;
+					}
+					else
+					{
+						retryUpdateSessionInfoAfterTickCount = TickCount + TickRate / 2;
+					}
 				}
 			}
 
