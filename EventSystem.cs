@@ -1,4 +1,5 @@
 ﻿
+using System.Collections;
 using System.Diagnostics;
 using System.Text;
 
@@ -29,7 +30,7 @@ namespace HerboldRacing
 			{
 				if ( subSessionID != sessionInfo.WeekendInfo.SubSessionID )
 				{
-					Reset( data );
+					Reset();
 
 					subSessionID = sessionInfo.WeekendInfo.SubSessionID;
 
@@ -49,7 +50,7 @@ namespace HerboldRacing
 			}
 		}
 
-		public void Reset( IRacingSdkData? data = null )
+		public void Reset()
 		{
 			subSessionID = -1;
 
@@ -58,38 +59,38 @@ namespace HerboldRacing
 
 			sessionTime = 0;
 
-			if ( data != null )
-			{
-				eventTracks.Reset( data );
-			}
+			eventTracks.Reset();
 		}
 
 		public void Record( IRacingSdkData data )
 		{
 			if ( streamWriter != null )
 			{
-				var sessionNum = data.GetInt( "SessionNum" );
-				var sessionTime = data.GetDouble( "SessionTime" );
-				var sessionTick = data.GetInt( "SessionTick" );
-
-				eventTracks.Update( sessionNum, sessionTime, sessionTick, stringBuilder, data );
-
-				if ( stringBuilder.Length > 0 )
+				if ( eventTracks.Initialize( data ) )
 				{
-					streamWriter.WriteLine( "---" );
-					streamWriter.WriteLine( $" SessionNum: {sessionNum}" );
-					streamWriter.WriteLine( $" SessionTime: {sessionTime:0.0000}" );
-					streamWriter.Write( stringBuilder );
-					streamWriter.WriteLine( "..." );
+					var sessionNum = data.GetInt( "SessionNum" );
+					var sessionTime = data.GetDouble( "SessionTime" );
+					var sessionTick = data.GetInt( "SessionTick" );
 
-					stringBuilder.Clear();
-				}
+					eventTracks.Update( sessionNum, sessionTime, sessionTick, stringBuilder, data );
 
-				if ( ( sessionTime < this.sessionTime ) || ( ( this.sessionTime + 5 ) <= sessionTime ) )
-				{
-					this.sessionTime = sessionTime;
+					if ( stringBuilder.Length > 0 )
+					{
+						streamWriter.WriteLine( "---" );
+						streamWriter.WriteLine( $" SessionNum: {sessionNum}" );
+						streamWriter.WriteLine( $" SessionTime: {sessionTime:0.0000}" );
+						streamWriter.Write( stringBuilder );
+						streamWriter.WriteLine( "..." );
 
-					streamWriter.Flush();
+						stringBuilder.Clear();
+					}
+
+					if ( ( sessionTime < this.sessionTime ) || ( ( this.sessionTime + 5 ) <= sessionTime ) )
+					{
+						this.sessionTime = sessionTime;
+
+						streamWriter.Flush();
+					}
 				}
 			}
 		}
@@ -108,211 +109,411 @@ namespace HerboldRacing
 
 		public class EventTracks
 		{
-			public EventTrack<uint> SessionFlags { get; } = new( "SessionFlags", 0, "SessionFlags" );
-			public EventTrack<int> SessionLapsTotal { get; } = new( "SessionLapsTotal", 0, "SessionLapsTotal" );
-			public EventTrack<int> PaceMode { get; } = new( "PaceMode", (int) IRacingSdkEnum.PaceMode.SingleFileStart, "PaceMode" );
-			public EventTrack<int> CarLeftRight { get; } = new( "CarLeftRight", (int) IRacingSdkEnum.CarLeftRight.Off, "CarLeftRight" );
-			public EventTrack<float> FuelLevel { get; } = new( "FuelLevel", 0, "FuelLevel", 120 );
+			private bool initialized = false;
 
-			public EventTrack<uint>[] CarIdxSessionFlags { get; } = new EventTrack<uint>[ IRacingSdkConst.MaxNumCars ];
-			public EventTrack<int>[] CarIdxPosition { get; } = new EventTrack<int>[ IRacingSdkConst.MaxNumCars ];
-			public EventTrack<int>[] CarIdxClassPosition { get; } = new EventTrack<int>[ IRacingSdkConst.MaxNumCars ];
-			public EventTrack<int>[] CarIdxPaceLine { get; } = new EventTrack<int>[ IRacingSdkConst.MaxNumCars ];
-			public EventTrack<int>[] CarIdxPaceRow { get; } = new EventTrack<int>[ IRacingSdkConst.MaxNumCars ];
-			public EventTrack<uint>[] CarIdxPaceFlags { get; } = new EventTrack<uint>[ IRacingSdkConst.MaxNumCars ];
+			public readonly Dictionary<string, TelemetryDataTrack> telemetryDataTracks = new();
+			public readonly Dictionary<string, SessionInfoTrack> sessionInfoTracks = new();
 
-			public EventTrack<int>[] CurDriverIncidentCount { get; } = new EventTrack<int>[ IRacingSdkConst.MaxNumCars ];
-			public EventTrack<int>[] TeamIncidentCount { get; } = new EventTrack<int>[ IRacingSdkConst.MaxNumCars ];
-
-			public EventTrack<int>[] QualifyPosition { get; } = new EventTrack<int>[ IRacingSdkConst.MaxNumCars ];
-			public EventTrack<int>[] QualifyClassPosition { get; } = new EventTrack<int>[ IRacingSdkConst.MaxNumCars ];
-			public EventTrack<int>[] QualifyFastestLap { get; } = new EventTrack<int>[ IRacingSdkConst.MaxNumCars ];
-			public EventTrack<float>[] QualifyFastestTime { get; } = new EventTrack<float>[ IRacingSdkConst.MaxNumCars ];
-
-			public EventTracks()
+			public static Dictionary<string, bool> DisallowedTelemetryDataDictionary { get; private set; } = new()
 			{
-				for ( var i = 0; i < IRacingSdkConst.MaxNumCars; i++ )
+				{ "CamCameraNumber", false },
+				{ "CamCameraState", false },
+				{ "CamCarIdx", false },
+				{ "CamGroupNumber", false },
+				{ "CarIdxEstTime", false },
+				{ "CarIdxLapDistPct", false },
+				{ "CarIdxRPM", false },
+				{ "CarIdxSteer", false },
+				{ "Engine0_RPM", false },
+				{ "IsDiskLoggingActive", false },
+				{ "IsDiskLoggingEnabled", false },
+				{ "IsGarageVisible", false },
+				{ "IsReplayPlaying", false },
+				{ "LapCurrentLapTime", false },
+				{ "LapDist", false },
+				{ "LapDistPct", false },
+				{ "LatAccel", false },
+				{ "LatAccel_ST", false },
+				{ "LFbrakeLinePress", false },
+				{ "LFshockDefl", false },
+				{ "LFshockDefl_ST", false },
+				{ "LFshockVel", false },
+				{ "LFshockVel_ST", false },
+				{ "LoadNumTextures", false },
+				{ "LongAccel", false },
+				{ "LongAccel_ST", false },
+				{ "LRbrakeLinePress", false },
+				{ "LRshockDefl", false },
+				{ "LRshockDefl_ST", false },
+				{ "LRshockVel", false },
+				{ "LRshockVel_ST", false },
+				{ "MemPageFaultSec", false },
+				{ "MemSoftPageFaultSec", false },
+				{ "OkToReloadTextures", false },
+				{ "Pitch", false },
+				{ "PitchRate", false },
+				{ "PitchRate_ST", false },
+				{ "ReplayFrameNum", false },
+				{ "ReplayFrameNumEnd", false },
+				{ "ReplayPlaySlowMotion", false },
+				{ "ReplayPlaySpeed", false },
+				{ "ReplaySessionNum", false },
+				{ "ReplaySessionTime", false },
+				{ "RFbrakeLinePress", false },
+				{ "RFshockDefl", false },
+				{ "RFshockDefl_ST", false },
+				{ "RFshockVel", false },
+				{ "RFshockVel_ST", false },
+				{ "Roll", false },
+				{ "RollRate", false },
+				{ "RollRate_ST", false },
+				{ "RPM", false },
+				{ "RRbrakeLinePress", false },
+				{ "RRshockDefl", false },
+				{ "RRshockDefl_ST", false },
+				{ "RRshockVel", false },
+				{ "RRshockVel_ST", false },
+				{ "SessionNum", false },
+				{ "SessionTick", false },
+				{ "SessionTime", false },
+				{ "Speed", false },
+				{ "SteeringWheelAngle", false },
+				{ "SteeringWheelLimiter", false },
+				{ "SteeringWheelMaxForceNm", false },
+				{ "SteeringWheelPctDamper", false },
+				{ "SteeringWheelPctIntensity", false },
+				{ "SteeringWheelPctSmoothing", false },
+				{ "SteeringWheelPctTorque", false },
+				{ "SteeringWheelPctTorqueSign", false },
+				{ "SteeringWheelPctTorqueSignStops", false },
+				{ "SteeringWheelPeakForceNm", false },
+				{ "SteeringWheelTorque", false },
+				{ "SteeringWheelTorque_ST", false },
+				{ "SteeringWheelUseLinear", false },
+				{ "TireLF_RumblePitch", false },
+				{ "TireLR_RumblePitch", false },
+				{ "TireRF_RumblePitch", false },
+				{ "TireRR_RumblePitch", false },
+				{ "VelocityX", false },
+				{ "VelocityX_ST", false },
+				{ "VelocityY", false },
+				{ "VelocityY_ST", false },
+				{ "VelocityZ", false },
+				{ "VelocityZ_ST", false },
+				{ "VertAccel", false },
+				{ "VertAccel_ST", false },
+				{ "VidCapActive", false },
+				{ "VidCapEnabled", false },
+				{ "Yaw", false },
+				{ "YawNorth", false },
+				{ "YawRate", false },
+				{ "YawRate_ST", false },
+			};
+
+			public bool Initialize( IRacingSdkData data )
+			{
+				if ( !initialized )
 				{
-					CarIdxSessionFlags[ i ] = new( $"CarIdxSessionFlags.{i}", 0, "CarIdxSessionFlags" );
-					CarIdxPosition[ i ] = new( $"CarIdxPosition.{i}", 0, "CarIdxPosition" );
-					CarIdxClassPosition[ i ] = new( $"CarIdxClassPosition.{i}", 0, "CarIdxClassPosition" );
-					CarIdxPaceLine[ i ] = new( $"CarIdxPaceLine.{i}", -1, "CarIdxPaceLine" );
-					CarIdxPaceRow[ i ] = new( $"CarIdxPaceRow.{i}", -1, "CarIdxPaceRow" );
-					CarIdxPaceFlags[ i ] = new( $"CarIdxPaceFlags.{i}", 0, "CarIdxPaceFlags" );
+					foreach ( var keyValuePair in data.TelemetryDataProperties )
+					{
+						if ( !DisallowedTelemetryDataDictionary.ContainsKey( keyValuePair.Key ) )
+						{
+							for ( var index = 0; index < keyValuePair.Value.Count; index++ )
+							{
+								TelemetryDataTrack telemetryDataTrack = keyValuePair.Value.VarType switch
+								{
+									IRacingSdkEnum.VarType.Char => new TelemetryDataTrack<char>( keyValuePair.Value, index ),
+									IRacingSdkEnum.VarType.Bool => new TelemetryDataTrack<bool>( keyValuePair.Value, index ),
+									IRacingSdkEnum.VarType.Int => new TelemetryDataTrack<int>( keyValuePair.Value, index ),
+									IRacingSdkEnum.VarType.BitField => new TelemetryDataTrack<uint>( keyValuePair.Value, index ),
+									IRacingSdkEnum.VarType.Float => new TelemetryDataTrack<float>( keyValuePair.Value, index ),
+									IRacingSdkEnum.VarType.Double => new TelemetryDataTrack<double>( keyValuePair.Value, index ),
+									_ => throw new Exception( $"Unexpected type ({keyValuePair.Value.VarType})!" )
+								};
 
-					CurDriverIncidentCount[ i ] = new( $"CurDriverIncidentCount.{i}", -1 );
-					TeamIncidentCount[ i ] = new( $"TeamIncidentCount.{i}", -1 );
+								telemetryDataTracks.Add( $"{keyValuePair.Value.Name}.{index}", telemetryDataTrack );
+							}
+						}
+					}
 
-					QualifyPosition[ i ] = new( $"QualifyPosition.{i}", -1 );
-					QualifyClassPosition[ i ] = new( $"QualifyClassPosition.{i}", -1 );
-					QualifyFastestLap[ i ] = new( $"QualifyFastestLap.{i}", -1 );
-					QualifyFastestTime[ i ] = new( $"QualifyFastestTime.{i}", 0.0f );
+					initialized = true;
 				}
+
+				return initialized;
 			}
 
-			public void Reset( IRacingSdkData data )
+			public void Reset()
 			{
-				SessionFlags.Reset( data );
-				SessionLapsTotal.Reset( data );
-				PaceMode.Reset( data );
-				CarLeftRight.Reset( data );
-				FuelLevel.Reset( data );
+				telemetryDataTracks.Clear();
+				sessionInfoTracks.Clear();
 
-				for ( var i = 0; i < IRacingSdkConst.MaxNumCars; i++ )
-				{
-					CarIdxSessionFlags[ i ].Reset( data );
-					CarIdxPosition[ i ].Reset( data );
-					CarIdxClassPosition[ i ].Reset( data );
-					CarIdxPaceLine[ i ].Reset( data );
-					CarIdxPaceRow[ i ].Reset( data );
-					CarIdxPaceFlags[ i ].Reset( data );
-
-					CurDriverIncidentCount[ i ].Reset( data );
-					TeamIncidentCount[ i ].Reset( data );
-
-					QualifyPosition[ i ].Reset( data );
-					QualifyClassPosition[ i ].Reset( data );
-					QualifyFastestLap[ i ].Reset( data );
-					QualifyFastestTime[ i ].Reset( data );
-				}
+				initialized = false;
 			}
 
 			public void Update( int sessionNum, double sessionTime, int sessionTick, StringBuilder stringBuilder, IRacingSdkData data )
 			{
-#pragma warning disable CS8604
-				var sessionFlags = data.GetBitField( SessionFlags.datum );
-				var sessionLapsTotal = data.GetInt( SessionLapsTotal.datum );
-				var paceMode = data.GetInt( PaceMode.datum );
-				var carLeftRight = data.GetInt( CarLeftRight.datum );
-				var fuelLevel = data.GetFloat( FuelLevel.datum );
-#pragma warning restore CS8604
-
-				SessionFlags.Update( sessionNum, sessionTime, sessionTick, stringBuilder, sessionFlags );
-				SessionLapsTotal.Update( sessionNum, sessionTime, sessionTick, stringBuilder, sessionLapsTotal );
-				PaceMode.Update( sessionNum, sessionTime, sessionTick, stringBuilder, paceMode );
-				CarLeftRight.Update( sessionNum, sessionTime, sessionTick, stringBuilder, carLeftRight );
-				FuelLevel.Update( sessionNum, sessionTime, sessionTick, stringBuilder, fuelLevel );
-
-				uint[] carIdxSessionFlags = new uint[ IRacingSdkConst.MaxNumCars ];
-				int[] carIdxPaceLine = new int[ IRacingSdkConst.MaxNumCars ];
-				int[] carIdxPaceRow = new int[ IRacingSdkConst.MaxNumCars ];
-				uint[] carIdxPaceFlags = new uint[ IRacingSdkConst.MaxNumCars ];
-
-#pragma warning disable CS8604
-				data.GetBitFieldArray( CarIdxSessionFlags[ 0 ].datum, carIdxSessionFlags, 0, IRacingSdkConst.MaxNumCars );
-				data.GetIntArray( CarIdxPaceLine[ 0 ].datum, carIdxPaceLine, 0, IRacingSdkConst.MaxNumCars );
-				data.GetIntArray( CarIdxPaceRow[ 0 ].datum, carIdxPaceRow, 0, IRacingSdkConst.MaxNumCars );
-				data.GetBitFieldArray( CarIdxPaceFlags[ 0 ].datum, carIdxPaceFlags, 0, IRacingSdkConst.MaxNumCars );
-#pragma warning restore CS8604
-
-				for ( var i = 0; i < IRacingSdkConst.MaxNumCars; i++ )
+				foreach ( var keyValuePair in telemetryDataTracks )
 				{
-					CarIdxSessionFlags[ i ].Update( sessionNum, sessionTime, sessionTick, stringBuilder, carIdxSessionFlags[ i ] );
-					// TODO Update CarIdxPosition
-					// TODO Update CarIdxClassPosition
-					CarIdxPaceLine[ i ].Update( sessionNum, sessionTime, sessionTick, stringBuilder, carIdxPaceLine[ i ] );
-					CarIdxPaceRow[ i ].Update( sessionNum, sessionTime, sessionTick, stringBuilder, carIdxPaceRow[ i ] );
-					CarIdxPaceFlags[ i ].Update( sessionNum, sessionTime, sessionTick, stringBuilder, carIdxPaceFlags[ i ] );
+					keyValuePair.Value.Update( sessionNum, sessionTime, sessionTick, stringBuilder, data );
 				}
 
 				var sessionInfo = data.SessionInfo;
 
-				foreach ( var driver in sessionInfo.DriverInfo.Drivers )
+				if ( sessionInfo != null )
 				{
-					var carIdx = driver.CarIdx;
-
-					if ( carIdx != -1 )
+					foreach ( var propertyInfo in sessionInfo.GetType().GetProperties() )
 					{
-						CurDriverIncidentCount[ carIdx ].Update( sessionNum, sessionTime, sessionTick, stringBuilder, driver.CurDriverIncidentCount );
-						TeamIncidentCount[ carIdx ].Update( sessionNum, sessionTime, sessionTick, stringBuilder, driver.TeamIncidentCount );
-					}
-				}
-
-				var qualifyPositions = sessionInfo.SessionInfo.Sessions[ sessionNum ].QualifyPositions;
-
-				if ( qualifyPositions != null )
-				{
-					foreach ( var qualifyPosition in qualifyPositions )
-					{
-						var carIdx = qualifyPosition.CarIdx;
-
-						QualifyPosition[ carIdx ].Update( sessionNum, sessionTime, sessionTick, stringBuilder, qualifyPosition.Position );
-						QualifyClassPosition[ carIdx ].Update( sessionNum, sessionTime, sessionTick, stringBuilder, qualifyPosition.ClassPosition );
-						QualifyFastestLap[ carIdx ].Update( sessionNum, sessionTime, sessionTick, stringBuilder, qualifyPosition.FastestLap );
-						QualifyFastestTime[ carIdx ].Update( sessionNum, sessionTime, sessionTick, stringBuilder, qualifyPosition.FastestTime );
+						Update( sessionNum, sessionTime, sessionTick, stringBuilder, propertyInfo.Name, propertyInfo.GetValue( sessionInfo ) );
 					}
 				}
 			}
 
-			public class EventTrack<T> where T : IEquatable<T>
+			private void Update( int sessionNum, double sessionTime, int sessionTick, StringBuilder stringBuilder, string propertyName, object? valueAsObject )
 			{
-				private string trackName;
-
-				private T defaultValue;
-				private T retainedValue;
-				private T currentValue;
-
-				private int sessionTickMask;
-
-				private string? datumName;
-				public IRacingSdkDatum? datum { get; private set; }
-
-				private List<Event> events = new();
-
-				public EventTrack( string trackName, T defaultValue, string? datumName = null, int sessionTickMask = 1 )
+				if ( valueAsObject != null )
 				{
-					this.trackName = trackName;
-					this.defaultValue = defaultValue;
-					this.sessionTickMask = sessionTickMask;
+					var isSimpleValue = ( ( valueAsObject is string ) || ( valueAsObject is int ) || ( valueAsObject is float ) || ( valueAsObject is double ) );
 
-					this.datumName = datumName;
-					this.datum = null;
-
-					retainedValue = defaultValue;
-					currentValue = defaultValue;
-				}
-
-				public void Reset( IRacingSdkData data )
-				{
-					retainedValue = defaultValue;
-					currentValue = defaultValue;
-
-					datum = null;
-
-					if ( datumName != null )
+					if ( isSimpleValue )
 					{
-						datum = data.TelemetryDataProperties[ datumName ];
+						var sessionInfoTrack = Initialize( propertyName, valueAsObject );
+
+						sessionInfoTrack.Update( sessionNum, sessionTime, sessionTick, stringBuilder, valueAsObject );
 					}
-
-					events.Clear();
-				}
-
-				public void Update( int sessionNum, double sessionTime, int sessionTick, StringBuilder stringBuilder, T value )
-				{
-					if ( ( sessionTick % sessionTickMask ) == 0 )
+					else if ( valueAsObject is IList list )
 					{
-						if ( !retainedValue.Equals( value ) )
+						var index = 0;
+
+						foreach ( var item in list )
 						{
-							stringBuilder.AppendLine( $" {trackName}: {value}" );
+							Update( sessionNum, sessionTime, sessionTick, stringBuilder, $"{propertyName}[{index}]", item );
 
-							events.Add( new Event( sessionNum, sessionTime, value ) );
-
-							retainedValue = value;
+							index++;
+						}
+					}
+					else
+					{
+						foreach ( var propertyInfo in valueAsObject.GetType().GetProperties() )
+						{
+							Update( sessionNum, sessionTime, sessionTick, stringBuilder, $"{propertyName}.{propertyInfo.Name}", propertyInfo.GetValue( valueAsObject ) );
 						}
 					}
 				}
+			}
 
-				public class Event
+			private SessionInfoTrack Initialize( string propertyName, object? valueAsObject )
+			{
+				if ( !sessionInfoTracks.ContainsKey( propertyName ) )
 				{
-					public readonly int sessionNum;
-					public readonly double sessionTime;
-					public readonly T value;
-
-					public Event( int sessionNum, double sessionTime, T value )
+					SessionInfoTrack sessionInfoTrack = valueAsObject switch
 					{
-						this.sessionNum = sessionNum;
-						this.sessionTime = sessionTime;
-						this.value = value;
+						string => new SessionInfoTrack<string>( propertyName, valueAsObject ),
+						int => new SessionInfoTrack<int>( propertyName, valueAsObject ),
+						float => new SessionInfoTrack<float>( propertyName, valueAsObject ),
+						_ => throw new Exception( $"Unexpected type ({valueAsObject?.GetType().Name})!" )
+					};
+
+					sessionInfoTracks.Add( propertyName, sessionInfoTrack );
+
+					return sessionInfoTrack;
+				}
+				else
+				{
+					return sessionInfoTracks[ propertyName ];
+				}
+			}
+
+			public abstract class Event
+			{
+			}
+
+			public class Event<T> : Event where T : IEquatable<T>
+			{
+				public readonly int sessionNum;
+				public readonly double sessionTime;
+				public readonly T value;
+
+				public Event( int sessionNum, double sessionTime, T value )
+				{
+					this.sessionNum = sessionNum;
+					this.sessionTime = sessionTime;
+					this.value = value;
+				}
+			}
+
+			public abstract class TelemetryDataTrack
+			{
+				protected readonly IRacingSdkDatum datum;
+				protected readonly int index;
+
+				protected int secondsPerValue = 0;
+				protected int newValueCount = 0;
+
+				protected readonly List<Event> events = new();
+
+				public static Dictionary<string, int> ManualSecondsPerValueDictionary { get; private set; } = new()
+				{
+					{ "AirDensity", 60 },
+					{ "AirPressure", 60 },
+					{ "AirTemp", 60 },
+					{ "Brake", 1 },
+					{ "BrakeRaw", 1 },
+					{ "CarIdxRPM", 1 },
+					{ "ChanAvgLatency", 15 },
+					{ "ChanClockSkew", 15 },
+					{ "ChanLatency", 15 },
+					{ "ChanPartnerQuality", 15 },
+					{ "ChanQuality", 15 },
+					{ "Clutch", 1 },
+					{ "ClutchRaw", 1 },
+					{ "CpuUsageBG", 60 },
+					{ "CpuUsageFG", 60 },
+					{ "dcBrakeBias", 1 },
+					{ "Engine0_RPM", 1 },
+					{ "FogLevel", 60 },
+					{ "FrameRate", 60 },
+					{ "FuelLevel", 1 },
+					{ "FuelLevelPct", 1 },
+					{ "FuelPress", 1 },
+					{ "FuelUsePerHour", 1 },
+					{ "GpuUsage", 60 },
+					{ "HandbrakeRaw", 1 },
+					{ "ManifoldPress", 1 },
+					{ "OilLevel", 1 },
+					{ "OilPress", 1 },
+					{ "OilTemp", 1 },
+					{ "PlayerCarTowTime", 1 },
+					{ "Precipitation", 60 },
+					{ "RelativeHumidity", 60 },
+					{ "RPM", 1 },
+					{ "SessionTimeOfDay", 60 },
+					{ "SessionTimeRemain", 1 },
+					{ "SolarAltitude", 60 },
+					{ "SolarAzimuth", 60 },
+					{ "Throttle", 1 },
+					{ "ThrottleRaw", 1 },
+					{ "TrackTemp", 60 },
+					{ "TrackTempCrew", 60 },
+					{ "Voltage", 1 },
+					{ "WaterLevel", 1 },
+					{ "WaterTemp", 1 },
+					{ "WindDir", 60 },
+					{ "WindVel", 60 },
+				};
+
+				protected TelemetryDataTrack( IRacingSdkDatum datum, int index )
+				{
+					this.datum = datum;
+					this.index = index;
+
+					if ( ManualSecondsPerValueDictionary.ContainsKey( datum.Name ) )
+					{
+						secondsPerValue = ManualSecondsPerValueDictionary[ datum.Name ];
+					}
+				}
+
+				public abstract void Update( int sessionNum, double sessionTime, int sessionTick, StringBuilder stringBuilder, IRacingSdkData data );
+			}
+
+			public class TelemetryDataTrack<T> : TelemetryDataTrack where T : IEquatable<T>
+			{
+				private bool initialized = false;
+				private T value;
+
+				public TelemetryDataTrack( IRacingSdkDatum datum, int index ) : base( datum, index )
+				{
+					object defaultValue = datum.VarType switch
+					{
+						IRacingSdkEnum.VarType.Char => (char) 0,
+						IRacingSdkEnum.VarType.Bool => false,
+						IRacingSdkEnum.VarType.Int => 0,
+						IRacingSdkEnum.VarType.BitField => (uint) 0,
+						IRacingSdkEnum.VarType.Float => 0.0f,
+						IRacingSdkEnum.VarType.Double => 0.0,
+						_ => throw new Exception( $"Unexpected type ({datum.VarType})!" )
+					};
+
+					value = (T) defaultValue;
+				}
+
+				public override void Update( int sessionNum, double sessionTime, int sessionTick, StringBuilder stringBuilder, IRacingSdkData data )
+				{
+					if ( !initialized || ( secondsPerValue == 0 ) || ( sessionTick % ( data.TickRate * secondsPerValue ) ) == 0 )
+					{
+						var newValue = (T) data.GetValue( datum, index );
+
+						if ( !initialized || !value.Equals( newValue ) )
+						{
+							stringBuilder.AppendLine( $" TD.{datum.Name}.{index}: {newValue}" );
+
+							events.Add( new Event<T>( sessionNum, sessionTime, newValue ) );
+
+							initialized = true;
+							value = newValue;
+
+							newValueCount++;
+						}
+					}
+
+					if ( ( secondsPerValue == 0 ) && ( newValueCount > 0 ) )
+					{
+						if ( ( sessionTick % ( data.TickRate / 5 ) ) == 0 )
+						{
+							newValueCount--;
+						}
+
+						if ( newValueCount >= 5 )
+						{
+							secondsPerValue = 1;
+						}
+					}
+				}
+			}
+
+			public abstract class SessionInfoTrack
+			{
+				protected readonly string propertyName;
+
+				protected readonly List<Event> events = new();
+
+				protected SessionInfoTrack( string propertyName )
+				{
+					this.propertyName = propertyName;
+				}
+
+				public abstract void Update( int sessionNum, double sessionTime, int sessionTick, StringBuilder stringBuilder, object valueAsObject );
+			}
+
+			public class SessionInfoTrack<T> : SessionInfoTrack where T : IEquatable<T>
+			{
+				private bool initialized = false;
+				private T value;
+
+				public SessionInfoTrack( string propertyName, object valueAsObject ) : base( propertyName )
+				{
+					object defaultValue = valueAsObject switch
+					{
+						string => string.Empty,
+						int => 0,
+						float => 0.0f,
+						_ => throw new Exception( $"Unexpected type ({valueAsObject.GetType().Name})!" )
+					};
+
+					value = (T) defaultValue;
+				}
+
+				public override void Update( int sessionNum, double sessionTime, int sessionTick, StringBuilder stringBuilder, object valueAsObject )
+				{
+					var newValue = (T) valueAsObject;
+
+					if ( !initialized || !value.Equals( newValue ) )
+					{
+						stringBuilder.AppendLine( $" SI.{propertyName}: {newValue}" );
+
+						events.Add( new Event<T>( sessionNum, sessionTime, newValue ) );
+
+						initialized = true;
+						value = newValue;
 					}
 				}
 			}
