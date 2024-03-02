@@ -448,6 +448,25 @@ namespace HerboldRacing
 				IRacingSdkEnum.VarType.BitField => memoryMappedViewAccessor.ReadUInt32( Offset + iRacingSdkDatum.Offset + index * 4 ),
 				IRacingSdkEnum.VarType.Float => memoryMappedViewAccessor.ReadSingle( Offset + iRacingSdkDatum.Offset + index * 4 ),
 				IRacingSdkEnum.VarType.Double => memoryMappedViewAccessor.ReadDouble( Offset + iRacingSdkDatum.Offset + index * 4 ),
+				_ => throw new Exception( "Unexpected type!" )
+			};
+		}
+
+		[MethodImpl( MethodImplOptions.AggressiveInlining )]
+		public object GetValue( IRacingSdkDatum datum, int index = 0 )
+		{
+			Debug.Assert( memoryMappedViewAccessor != null );
+
+			Validate( datum, index, null );
+
+			return datum.VarType switch
+			{
+				IRacingSdkEnum.VarType.Char => memoryMappedViewAccessor.ReadChar( Offset + datum.Offset + index ),
+				IRacingSdkEnum.VarType.Bool => memoryMappedViewAccessor.ReadBoolean( Offset + datum.Offset + index ),
+				IRacingSdkEnum.VarType.Int => memoryMappedViewAccessor.ReadInt32( Offset + datum.Offset + index * 4 ),
+				IRacingSdkEnum.VarType.BitField => memoryMappedViewAccessor.ReadUInt32( Offset + datum.Offset + index * 4 ),
+				IRacingSdkEnum.VarType.Float => memoryMappedViewAccessor.ReadSingle( Offset + datum.Offset + index * 4 ),
+				IRacingSdkEnum.VarType.Double => memoryMappedViewAccessor.ReadDouble( Offset + datum.Offset + index * 4 ),
 				_ => throw new Exception( "Unexpected type!" ),
 			};
 		}
@@ -472,7 +491,7 @@ namespace HerboldRacing
 		}
 
 		[Conditional( "DEBUG" )]
-		private void Validate( IRacingSdkDatum datum, int index, IRacingSdkEnum.VarType? type )
+		private static void Validate( IRacingSdkDatum datum, int index, IRacingSdkEnum.VarType? type )
 		{
 			if ( index >= datum.Count )
 			{
