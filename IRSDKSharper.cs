@@ -20,11 +20,15 @@ namespace HerboldRacing
 
 		public int UpdateInterval { get; set; } = 1;
 
+		public EventSystem EventSystem { get; private set; }
+
 		public event Action<Exception>? OnException = null;
 		public event Action? OnConnected = null;
 		public event Action? OnDisconnected = null;
 		public event Action? OnSessionInfo = null;
 		public event Action? OnTelemetryData = null;
+		public event Action? OnEventSystemDataReset = null;
+		public event Action? OnEventSystemDataLoaded = null;
 		public event Action? OnStopped = null;
 
 		private int keepThreadsAlive = 0;
@@ -45,8 +49,6 @@ namespace HerboldRacing
 		private int sessionInfoUpdateReady = 0;
 
 		private readonly uint broadcastWindowMessage = Windows.RegisterWindowMessage( BroadcastMessageName );
-
-		private EventSystem? eventSystem = null;
 
 		/// <summary>
 		/// <para>Welcome to IRSDKSharper!</para>
@@ -70,6 +72,8 @@ namespace HerboldRacing
 			Debug.WriteLine( "IRSDKSharper is being instantiated." );
 
 			Data = new( throwYamlExceptions );
+
+			EventSystem = new( this );
 		}
 
 		public void Start()
@@ -150,7 +154,7 @@ namespace HerboldRacing
 					lastSessionInfoUpdate = 0;
 					sessionInfoUpdateReady = 0;
 
-					eventSystem?.Reset();
+					EventSystem.Reset();
 
 					Debug.WriteLine( "IRSDKSharper has been stopped." );
 
@@ -160,16 +164,21 @@ namespace HerboldRacing
 		}
 
 		/// <summary>
-		/// This event system feature is a work in progress - please do not use it yet.
+		/// This event system feature is currently experimental.
 		/// </summary>
 		public void EnableEventSystem( string? directory )
 		{
-			eventSystem = null;
+			EventSystem.SetDirectory( directory ?? string.Empty );
+		}
 
-			if ( directory != null )
-			{
-				eventSystem = new EventSystem( directory );
-			}
+		public void FireOnEventSystemDataReset()
+		{
+			OnEventSystemDataReset?.Invoke();
+		}
+
+		public void FireOnEventSystemDataLoaded()
+		{
+			OnEventSystemDataLoaded?.Invoke();
 		}
 
 		#region simulator remote control
@@ -351,7 +360,7 @@ namespace HerboldRacing
 					}
 					else
 					{
-						Thread.Sleep( 250 );
+						Thread.Sleep( 2000 );
 					}
 				}
 
@@ -379,13 +388,13 @@ namespace HerboldRacing
 
 				while ( keepThreadsAlive == 1 )
 				{
-					Debug.WriteLine( "Waiting for session info event." );
+					// Debug.WriteLine( "Waiting for session info event." );
 
 					sessionInfoAutoResetEvent?.WaitOne();
 
 					if ( ( keepThreadsAlive == 1 ) && IsConnected )
 					{
-						Debug.WriteLine( "Updating session info." );
+						// Debug.WriteLine( "Updating session info." );
 
 						if ( Data.UpdateSessionInfo() )
 						{
@@ -440,7 +449,7 @@ namespace HerboldRacing
 
 						if ( ( lastSessionInfoUpdate != Data.SessionInfoUpdate ) || ( Data.TickCount >= Data.retryUpdateSessionInfoAfterTickCount ) )
 						{
-							Debug.WriteLine( "Data.SessionInfoUpdate has changed." );
+							// Debug.WriteLine( "Data.SessionInfoUpdate has changed." );
 
 							lastSessionInfoUpdate = Data.SessionInfoUpdate;
 
@@ -449,12 +458,11 @@ namespace HerboldRacing
 							sessionInfoAutoResetEvent?.Set();
 						}
 
-						eventSystem?.Update( Data );
-						eventSystem?.Record( Data );
+						EventSystem.Update( Data );
 
 						if ( Interlocked.Exchange( ref sessionInfoUpdateReady, 0 ) == 1 )
 						{
-							Debug.WriteLine( "Invoking OnSessionInfo." );
+							// Debug.WriteLine( "Invoking OnSessionInfo." );
 
 							OnSessionInfo?.Invoke();
 						}
@@ -480,7 +488,7 @@ namespace HerboldRacing
 
 							Data.Reset();
 
-							eventSystem?.Reset();
+							EventSystem.Reset();
 						}
 					}
 				}

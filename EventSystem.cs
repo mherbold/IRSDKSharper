@@ -1,102 +1,289 @@
 ﻿
 using System.Collections;
 using System.Diagnostics;
-using System.Text;
 
 namespace HerboldRacing
 {
-	public class EventSystem
+	public partial class EventSystem
 	{
-		private const int BufferSize = 8 * 1024;
+		public Dictionary<string, EventTrack> Tracks { get; private set; } = new();
+		public static HashSet<string> DisallowedTelemetryDataNames { get; private set; } = new()
+			{
+				"CamCameraNumber",
+				"CamCameraState",
+				"CamCarIdx",
+				"CamGroupNumber",
+				"CarIdxEstTime",
+				"CarIdxLapDistPct",
+				"CarIdxRPM",
+				"CarIdxSteer",
+				"Engine0_RPM",
+				"IsDiskLoggingActive",
+				"IsDiskLoggingEnabled",
+				"IsGarageVisible",
+				"IsReplayPlaying",
+				"LapCurrentLapTime",
+				"LapDist",
+				"LapDistPct",
+				"LatAccel",
+				"LatAccel_ST",
+				"LFbrakeLinePress",
+				"LFshockDefl",
+				"LFshockDefl_ST",
+				"LFshockVel",
+				"LFshockVel_ST",
+				"LoadNumTextures",
+				"LongAccel",
+				"LongAccel_ST",
+				"LRbrakeLinePress",
+				"LRshockDefl",
+				"LRshockDefl_ST",
+				"LRshockVel",
+				"LRshockVel_ST",
+				"MemPageFaultSec",
+				"MemSoftPageFaultSec",
+				"OkToReloadTextures",
+				"Pitch",
+				"PitchRate",
+				"PitchRate_ST",
+				"ReplayFrameNum",
+				"ReplayFrameNumEnd",
+				"ReplayPlaySlowMotion",
+				"ReplayPlaySpeed",
+				"ReplaySessionNum",
+				"ReplaySessionTime",
+				"RFbrakeLinePress",
+				"RFshockDefl",
+				"RFshockDefl_ST",
+				"RFshockVel",
+				"RFshockVel_ST",
+				"Roll",
+				"RollRate",
+				"RollRate_ST",
+				"RPM",
+				"RRbrakeLinePress",
+				"RRshockDefl",
+				"RRshockDefl_ST",
+				"RRshockVel",
+				"RRshockVel_ST",
+				"SessionNum",
+				"SessionTick",
+				"SessionTime",
+				"Speed",
+				"SteeringWheelAngle",
+				"SteeringWheelLimiter",
+				"SteeringWheelMaxForceNm",
+				"SteeringWheelPctDamper",
+				"SteeringWheelPctIntensity",
+				"SteeringWheelPctSmoothing",
+				"SteeringWheelPctTorque",
+				"SteeringWheelPctTorqueSign",
+				"SteeringWheelPctTorqueSignStops",
+				"SteeringWheelPeakForceNm",
+				"SteeringWheelTorque",
+				"SteeringWheelTorque_ST",
+				"SteeringWheelUseLinear",
+				"TireLF_RumblePitch",
+				"TireLR_RumblePitch",
+				"TireRF_RumblePitch",
+				"TireRR_RumblePitch",
+				"VelocityX",
+				"VelocityX_ST",
+				"VelocityY",
+				"VelocityY_ST",
+				"VelocityZ",
+				"VelocityZ_ST",
+				"VertAccel",
+				"VertAccel_ST",
+				"VidCapActive",
+				"VidCapEnabled",
+				"Yaw",
+				"YawNorth",
+				"YawRate",
+				"YawRate_ST",
+			};
 
-		private readonly string directory;
+		private readonly IRSDKSharper irsdkSharper;
+
+		private string directory = string.Empty;
 
 		private int subSessionID = -1;
-		private StreamWriter? streamWriter = null;
-		private double sessionTime = 0;
-		private readonly EventTracks eventTracks = new();
-		private readonly StringBuilder stringBuilder = new( BufferSize );
 
-		public EventSystem( string directory )
+		private IRacingSdkDatum sessionNumDatum = new();
+		private IRacingSdkDatum sessionTimeDatum = new();
+		private IRacingSdkDatum sessionTickDatum = new();
+
+		private int sessionNum = 0;
+		private double sessionTime = 0;
+		private int sessionTick = 0;
+
+		private BinaryWriter? binaryWriter = null;
+
+		private readonly Dictionary<string, short> trackNameDictionary = new();
+		private short lastUsedTrackNameId = 99;
+
+		private bool frameHeaderRecorded = false;
+
+		public EventSystem( IRSDKSharper irsdkSharper )
 		{
-			this.directory = directory;
+			this.irsdkSharper = irsdkSharper;
 		}
 
-		public void Update( IRacingSdkData data )
+		public void SetDirectory( string directory )
 		{
-			var sessionInfo = data.SessionInfo;
+			Debug.WriteLine( $"EventSystem - SetDirectory( {directory} )" );
 
-			if ( sessionInfo != null )
+			this.directory = directory;
+
+			if ( this.directory != string.Empty )
 			{
-				if ( subSessionID != sessionInfo.WeekendInfo.SubSessionID )
-				{
-					Reset();
-
-					subSessionID = sessionInfo.WeekendInfo.SubSessionID;
-
-					Directory.CreateDirectory( directory );
-
-					var filePath = Path.Combine( directory, $"subses{subSessionID}.yaml" );
-
-					if ( sessionInfo.WeekendInfo.SimMode == "replay" )
-					{
-						LoadEvents( filePath );
-					}
-					else
-					{
-						streamWriter = new StreamWriter( filePath, true, Encoding.UTF8, BufferSize );
-					}
-				}
+				Directory.CreateDirectory( directory );
 			}
+
+			Reset();
 		}
 
 		public void Reset()
 		{
+			Debug.WriteLine( "EventSystem - Reset()" );
+
+			irsdkSharper.FireOnEventSystemDataReset();
+
+			Tracks.Clear();
+
 			subSessionID = -1;
 
-			streamWriter?.Close();
-			streamWriter = null;
+			sessionNumDatum = new();
+			sessionTimeDatum = new();
+			sessionTickDatum = new();
 
+			sessionNum = 0;
 			sessionTime = 0;
+			sessionTick = 0;
 
-			eventTracks.Reset();
+			binaryWriter?.Close();
+			binaryWriter = null;
+
+			trackNameDictionary.Clear();
+			lastUsedTrackNameId = 99;
+
+			frameHeaderRecorded = false;
+
+			ResetCalculatedTracks();
 		}
 
-		public void Record( IRacingSdkData data )
+		public void Update( IRacingSdkData data )
 		{
-			if ( streamWriter != null )
+			if ( data.SessionInfo is IRacingSdkSessionInfo sessionInfo )
 			{
-				if ( eventTracks.Initialize( data ) )
+				if ( subSessionID != sessionInfo.WeekendInfo.SubSessionID )
 				{
-					var sessionNum = data.GetInt( "SessionNum" );
-					var sessionTime = data.GetDouble( "SessionTime" );
-					var sessionTick = data.GetInt( "SessionTick" );
+					Debug.WriteLine( "EventSystem - sessionInfo.WeekendInfo.SubSessionID changed" );
 
-					eventTracks.Update( sessionNum, sessionTime, sessionTick, stringBuilder, data );
+					Reset();
 
-					if ( stringBuilder.Length > 0 )
+					subSessionID = sessionInfo.WeekendInfo.SubSessionID;
+
+					if ( directory != string.Empty )
 					{
-						streamWriter.WriteLine( "---" );
-						streamWriter.WriteLine( $" SessionNum: {sessionNum}" );
-						streamWriter.WriteLine( $" SessionTime: {sessionTime:0.0000}" );
-						streamWriter.Write( stringBuilder );
-						streamWriter.WriteLine( "..." );
+						Initialize( data );
 
-						stringBuilder.Clear();
+						var filePath = Path.Combine( directory, $"subses{subSessionID}.bin" );
+
+						if ( sessionInfo.WeekendInfo.SimMode == "replay" )
+						{
+							LoadEvents( filePath );
+						}
+						else
+						{
+							Debug.WriteLine( "EventSystem - opening telemetry file stream" );
+
+							var stream = File.Open( filePath, FileMode.Append );
+
+							binaryWriter = new BinaryWriter( stream );
+						}
 					}
+				}
 
-					if ( ( sessionTime < this.sessionTime ) || ( ( this.sessionTime + 5 ) <= sessionTime ) )
+				if ( binaryWriter != null )
+				{
+					frameHeaderRecorded = false;
+
+					sessionNum = data.GetInt( sessionNumDatum );
+					sessionTime = data.GetDouble( sessionTimeDatum );
+					sessionTick = data.GetInt( sessionTickDatum );
+
+					RecordTelemetryDataChanges( data );
+					RecordCalculatedTracks( data );
+
+					foreach ( var propertyInfo in sessionInfo.GetType().GetProperties() )
 					{
-						this.sessionTime = sessionTime;
-
-						streamWriter.Flush();
+						RecordSessionInfoChanges( propertyInfo.Name, propertyInfo.GetValue( sessionInfo ) );
 					}
 				}
 			}
 		}
 
+		public short GetTrackNameId( string trackName, IRacingSdkEnum.VarType varType )
+		{
+			if ( trackNameDictionary.ContainsKey( trackName ) )
+			{
+				return trackNameDictionary[ trackName ];
+			}
+
+			var trackNameId = (short) ( lastUsedTrackNameId + 1 );
+
+			trackNameDictionary.Add( trackName, trackNameId );
+
+			lastUsedTrackNameId = trackNameId;
+
+#pragma warning disable CS8602
+			binaryWriter.Write( (short) 1 );
+			binaryWriter.Write( trackNameId );
+			binaryWriter.Write( (char) varType );
+			binaryWriter.Write( trackName );
+#pragma warning restore CS8602
+
+			return trackNameId;
+		}
+
+		private void Initialize( IRacingSdkData data )
+		{
+			Debug.WriteLine( "EventSystem - Initialize()" );
+
+			sessionNumDatum = data.TelemetryDataProperties[ "SessionNum" ];
+			sessionTimeDatum = data.TelemetryDataProperties[ "SessionTime" ];
+			sessionTickDatum = data.TelemetryDataProperties[ "SessionTick" ];
+
+			foreach ( var keyValuePair in data.TelemetryDataProperties )
+			{
+				if ( !DisallowedTelemetryDataNames.Contains( keyValuePair.Key ) )
+				{
+					for ( var index = 0; index < keyValuePair.Value.Count; index++ )
+					{
+						EventTrack eventTrack = keyValuePair.Value.VarType switch
+						{
+							IRacingSdkEnum.VarType.Char => new EventTrack<string>( keyValuePair.Value, index ),
+							IRacingSdkEnum.VarType.Bool => new EventTrack<bool>( keyValuePair.Value, index ),
+							IRacingSdkEnum.VarType.Int => new EventTrack<int>( keyValuePair.Value, index ),
+							IRacingSdkEnum.VarType.BitField => new EventTrack<uint>( keyValuePair.Value, index ),
+							IRacingSdkEnum.VarType.Float => new EventTrack<float>( keyValuePair.Value, index ),
+							IRacingSdkEnum.VarType.Double => new EventTrack<double>( keyValuePair.Value, index ),
+							_ => throw new Exception( $"Unexpected type ({keyValuePair.Value.VarType})!" )
+						};
+
+						Tracks.Add( eventTrack.ToString(), eventTrack );
+					}
+				}
+			}
+
+			InitializeCalculatedTracks( data );
+		}
+
 		private void LoadEvents( string filePath )
 		{
+			Debug.WriteLine( $"EventSystem - LoadEvents( {filePath} )" );
+
 			if ( !File.Exists( filePath ) )
 			{
 				Debug.WriteLine( $"Warning - Event system file '{filePath}' does not exist." );
@@ -104,418 +291,140 @@ namespace HerboldRacing
 				return;
 			}
 
-			// TODO
-		}
+			sessionNum = -1;
+			sessionTime = 0.0;
 
-		public class EventTracks
-		{
-			private bool initialized = false;
+			var stream = File.Open( filePath, FileMode.Open );
 
-			public readonly Dictionary<string, TelemetryDataTrack> telemetryDataTracks = new();
-			public readonly Dictionary<string, SessionInfoTrack> sessionInfoTracks = new();
+			var binaryReader = new BinaryReader( stream );
 
-			public static Dictionary<string, bool> DisallowedTelemetryDataDictionary { get; private set; } = new()
+			var trackNameIdDictionary = new Dictionary<short, string>();
+
+			while ( true )
 			{
-				{ "CamCameraNumber", false },
-				{ "CamCameraState", false },
-				{ "CamCarIdx", false },
-				{ "CamGroupNumber", false },
-				{ "CarIdxEstTime", false },
-				{ "CarIdxLapDistPct", false },
-				{ "CarIdxRPM", false },
-				{ "CarIdxSteer", false },
-				{ "Engine0_RPM", false },
-				{ "IsDiskLoggingActive", false },
-				{ "IsDiskLoggingEnabled", false },
-				{ "IsGarageVisible", false },
-				{ "IsReplayPlaying", false },
-				{ "LapCurrentLapTime", false },
-				{ "LapDist", false },
-				{ "LapDistPct", false },
-				{ "LatAccel", false },
-				{ "LatAccel_ST", false },
-				{ "LFbrakeLinePress", false },
-				{ "LFshockDefl", false },
-				{ "LFshockDefl_ST", false },
-				{ "LFshockVel", false },
-				{ "LFshockVel_ST", false },
-				{ "LoadNumTextures", false },
-				{ "LongAccel", false },
-				{ "LongAccel_ST", false },
-				{ "LRbrakeLinePress", false },
-				{ "LRshockDefl", false },
-				{ "LRshockDefl_ST", false },
-				{ "LRshockVel", false },
-				{ "LRshockVel_ST", false },
-				{ "MemPageFaultSec", false },
-				{ "MemSoftPageFaultSec", false },
-				{ "OkToReloadTextures", false },
-				{ "Pitch", false },
-				{ "PitchRate", false },
-				{ "PitchRate_ST", false },
-				{ "ReplayFrameNum", false },
-				{ "ReplayFrameNumEnd", false },
-				{ "ReplayPlaySlowMotion", false },
-				{ "ReplayPlaySpeed", false },
-				{ "ReplaySessionNum", false },
-				{ "ReplaySessionTime", false },
-				{ "RFbrakeLinePress", false },
-				{ "RFshockDefl", false },
-				{ "RFshockDefl_ST", false },
-				{ "RFshockVel", false },
-				{ "RFshockVel_ST", false },
-				{ "Roll", false },
-				{ "RollRate", false },
-				{ "RollRate_ST", false },
-				{ "RPM", false },
-				{ "RRbrakeLinePress", false },
-				{ "RRshockDefl", false },
-				{ "RRshockDefl_ST", false },
-				{ "RRshockVel", false },
-				{ "RRshockVel_ST", false },
-				{ "SessionNum", false },
-				{ "SessionTick", false },
-				{ "SessionTime", false },
-				{ "Speed", false },
-				{ "SteeringWheelAngle", false },
-				{ "SteeringWheelLimiter", false },
-				{ "SteeringWheelMaxForceNm", false },
-				{ "SteeringWheelPctDamper", false },
-				{ "SteeringWheelPctIntensity", false },
-				{ "SteeringWheelPctSmoothing", false },
-				{ "SteeringWheelPctTorque", false },
-				{ "SteeringWheelPctTorqueSign", false },
-				{ "SteeringWheelPctTorqueSignStops", false },
-				{ "SteeringWheelPeakForceNm", false },
-				{ "SteeringWheelTorque", false },
-				{ "SteeringWheelTorque_ST", false },
-				{ "SteeringWheelUseLinear", false },
-				{ "TireLF_RumblePitch", false },
-				{ "TireLR_RumblePitch", false },
-				{ "TireRF_RumblePitch", false },
-				{ "TireRR_RumblePitch", false },
-				{ "VelocityX", false },
-				{ "VelocityX_ST", false },
-				{ "VelocityY", false },
-				{ "VelocityY_ST", false },
-				{ "VelocityZ", false },
-				{ "VelocityZ_ST", false },
-				{ "VertAccel", false },
-				{ "VertAccel_ST", false },
-				{ "VidCapActive", false },
-				{ "VidCapEnabled", false },
-				{ "Yaw", false },
-				{ "YawNorth", false },
-				{ "YawRate", false },
-				{ "YawRate_ST", false },
-			};
-
-			public bool Initialize( IRacingSdkData data )
-			{
-				if ( !initialized )
+				try
 				{
-					foreach ( var keyValuePair in data.TelemetryDataProperties )
+					var trackNameId = binaryReader.ReadInt16();
+
+					if ( trackNameId == 0 )
 					{
-						if ( !DisallowedTelemetryDataDictionary.ContainsKey( keyValuePair.Key ) )
+						sessionNum = binaryReader.ReadInt32();
+						sessionTime = binaryReader.ReadDouble();
+					}
+					else if ( trackNameId == 1 )
+					{
+						trackNameId = binaryReader.ReadInt16();
+						var varType = (IRacingSdkEnum.VarType) binaryReader.ReadChar();
+						string trackName = binaryReader.ReadString();
+
+						trackNameIdDictionary[ trackNameId ] = trackName;
+
+						if ( !Tracks.ContainsKey( trackName ) )
 						{
-							for ( var index = 0; index < keyValuePair.Value.Count; index++ )
+							EventTrack track = varType switch
 							{
-								TelemetryDataTrack telemetryDataTrack = keyValuePair.Value.VarType switch
-								{
-									IRacingSdkEnum.VarType.Char => new TelemetryDataTrack<char>( keyValuePair.Value, index ),
-									IRacingSdkEnum.VarType.Bool => new TelemetryDataTrack<bool>( keyValuePair.Value, index ),
-									IRacingSdkEnum.VarType.Int => new TelemetryDataTrack<int>( keyValuePair.Value, index ),
-									IRacingSdkEnum.VarType.BitField => new TelemetryDataTrack<uint>( keyValuePair.Value, index ),
-									IRacingSdkEnum.VarType.Float => new TelemetryDataTrack<float>( keyValuePair.Value, index ),
-									IRacingSdkEnum.VarType.Double => new TelemetryDataTrack<double>( keyValuePair.Value, index ),
-									_ => throw new Exception( $"Unexpected type ({keyValuePair.Value.VarType})!" )
-								};
+								IRacingSdkEnum.VarType.Char => new EventTrack<string>( trackName, varType ),
+								IRacingSdkEnum.VarType.Bool => new EventTrack<bool>( trackName, varType ),
+								IRacingSdkEnum.VarType.Int => new EventTrack<int>( trackName, varType ),
+								IRacingSdkEnum.VarType.BitField => new EventTrack<uint>( trackName, varType ),
+								IRacingSdkEnum.VarType.Float => new EventTrack<float>( trackName, varType ),
+								IRacingSdkEnum.VarType.Double => new EventTrack<double>( trackName, varType ),
+								_ => throw new Exception( $"Unexpected type ({varType})!" )
+							};
 
-								telemetryDataTracks.Add( $"{keyValuePair.Value.Name}.{index}", telemetryDataTrack );
-							}
-						}
-					}
-
-					initialized = true;
-				}
-
-				return initialized;
-			}
-
-			public void Reset()
-			{
-				telemetryDataTracks.Clear();
-				sessionInfoTracks.Clear();
-
-				initialized = false;
-			}
-
-			public void Update( int sessionNum, double sessionTime, int sessionTick, StringBuilder stringBuilder, IRacingSdkData data )
-			{
-				foreach ( var keyValuePair in telemetryDataTracks )
-				{
-					keyValuePair.Value.Update( sessionNum, sessionTime, sessionTick, stringBuilder, data );
-				}
-
-				var sessionInfo = data.SessionInfo;
-
-				if ( sessionInfo != null )
-				{
-					foreach ( var propertyInfo in sessionInfo.GetType().GetProperties() )
-					{
-						Update( sessionNum, sessionTime, sessionTick, stringBuilder, propertyInfo.Name, propertyInfo.GetValue( sessionInfo ) );
-					}
-				}
-			}
-
-			private void Update( int sessionNum, double sessionTime, int sessionTick, StringBuilder stringBuilder, string propertyName, object? valueAsObject )
-			{
-				if ( valueAsObject != null )
-				{
-					var isSimpleValue = ( ( valueAsObject is string ) || ( valueAsObject is int ) || ( valueAsObject is float ) || ( valueAsObject is double ) );
-
-					if ( isSimpleValue )
-					{
-						var sessionInfoTrack = Initialize( propertyName, valueAsObject );
-
-						sessionInfoTrack.Update( sessionNum, sessionTime, sessionTick, stringBuilder, valueAsObject );
-					}
-					else if ( valueAsObject is IList list )
-					{
-						var index = 0;
-
-						foreach ( var item in list )
-						{
-							Update( sessionNum, sessionTime, sessionTick, stringBuilder, $"{propertyName}[{index}]", item );
-
-							index++;
+							Tracks.Add( trackName, track );
 						}
 					}
 					else
 					{
-						foreach ( var propertyInfo in valueAsObject.GetType().GetProperties() )
-						{
-							Update( sessionNum, sessionTime, sessionTick, stringBuilder, $"{propertyName}.{propertyInfo.Name}", propertyInfo.GetValue( valueAsObject ) );
-						}
+						var track = Tracks[ trackNameIdDictionary[ trackNameId ] ];
+
+						track.Load( sessionNum, sessionTime, binaryReader );
 					}
+				}
+				catch ( EndOfStreamException )
+				{
+					break;
 				}
 			}
 
-			private SessionInfoTrack Initialize( string propertyName, object? valueAsObject )
+			irsdkSharper.FireOnEventSystemDataLoaded();
+		}
+
+		private void RecordTelemetryDataChanges( IRacingSdkData data )
+		{
+			foreach ( var keyValuePair in Tracks )
 			{
-				if ( !sessionInfoTracks.ContainsKey( propertyName ) )
+				keyValuePair.Value.Record( this, data );
+			}
+		}
+
+		private void RecordSessionInfoChanges( string trackName, object? valueAsObject )
+		{
+			if ( valueAsObject != null )
+			{
+				var isSimpleValue = ( ( valueAsObject is string ) || ( valueAsObject is int ) || ( valueAsObject is float ) || ( valueAsObject is double ) );
+
+				if ( isSimpleValue )
 				{
-					SessionInfoTrack sessionInfoTrack = valueAsObject switch
+					var track = CreateEventTrack( trackName, valueAsObject );
+
+					track.Record( this, valueAsObject );
+				}
+				else if ( valueAsObject is IList list )
+				{
+					var index = 0;
+
+					foreach ( var item in list )
 					{
-						string => new SessionInfoTrack<string>( propertyName, valueAsObject ),
-						int => new SessionInfoTrack<int>( propertyName, valueAsObject ),
-						float => new SessionInfoTrack<float>( propertyName, valueAsObject ),
-						_ => throw new Exception( $"Unexpected type ({valueAsObject?.GetType().Name})!" )
-					};
+						RecordSessionInfoChanges( $"{trackName}[{index}]", item );
 
-					sessionInfoTracks.Add( propertyName, sessionInfoTrack );
-
-					return sessionInfoTrack;
+						index++;
+					}
 				}
 				else
 				{
-					return sessionInfoTracks[ propertyName ];
+					foreach ( var propertyInfo in valueAsObject.GetType().GetProperties() )
+					{
+						RecordSessionInfoChanges( $"{trackName}.{propertyInfo.Name}", propertyInfo.GetValue( valueAsObject ) );
+					}
 				}
 			}
+		}
 
-			public abstract class Event
+		private void RecordFrameHeader()
+		{
+			if ( !frameHeaderRecorded )
 			{
+#pragma warning disable CS8602
+				binaryWriter.Write( (short) 0 );
+				binaryWriter.Write( sessionNum );
+				binaryWriter.Write( sessionTime );
+#pragma warning restore CS8602
+
+				frameHeaderRecorded = true;
 			}
+		}
 
-			public class Event<T> : Event where T : IEquatable<T>
+		private EventTrack CreateEventTrack( string trackName, object? valueAsObject )
+		{
+			if ( !Tracks.ContainsKey( trackName ) )
 			{
-				public readonly int sessionNum;
-				public readonly double sessionTime;
-				public readonly T value;
-
-				public Event( int sessionNum, double sessionTime, T value )
+				EventTrack track = valueAsObject switch
 				{
-					this.sessionNum = sessionNum;
-					this.sessionTime = sessionTime;
-					this.value = value;
-				}
-			}
-
-			public abstract class TelemetryDataTrack
-			{
-				protected readonly IRacingSdkDatum datum;
-				protected readonly int index;
-
-				protected int secondsPerValue = 0;
-				protected int newValueCount = 0;
-
-				protected readonly List<Event> events = new();
-
-				public static Dictionary<string, int> ManualSecondsPerValueDictionary { get; private set; } = new()
-				{
-					{ "AirDensity", 60 },
-					{ "AirPressure", 60 },
-					{ "AirTemp", 60 },
-					{ "Brake", 1 },
-					{ "BrakeRaw", 1 },
-					{ "CarIdxRPM", 1 },
-					{ "ChanAvgLatency", 15 },
-					{ "ChanClockSkew", 15 },
-					{ "ChanLatency", 15 },
-					{ "ChanPartnerQuality", 15 },
-					{ "ChanQuality", 15 },
-					{ "Clutch", 1 },
-					{ "ClutchRaw", 1 },
-					{ "CpuUsageBG", 60 },
-					{ "CpuUsageFG", 60 },
-					{ "dcBrakeBias", 1 },
-					{ "Engine0_RPM", 1 },
-					{ "FogLevel", 60 },
-					{ "FrameRate", 60 },
-					{ "FuelLevel", 1 },
-					{ "FuelLevelPct", 1 },
-					{ "FuelPress", 1 },
-					{ "FuelUsePerHour", 1 },
-					{ "GpuUsage", 60 },
-					{ "HandbrakeRaw", 1 },
-					{ "ManifoldPress", 1 },
-					{ "OilLevel", 1 },
-					{ "OilPress", 1 },
-					{ "OilTemp", 1 },
-					{ "PlayerCarTowTime", 1 },
-					{ "Precipitation", 60 },
-					{ "RelativeHumidity", 60 },
-					{ "RPM", 1 },
-					{ "SessionTimeOfDay", 60 },
-					{ "SessionTimeRemain", 1 },
-					{ "SolarAltitude", 60 },
-					{ "SolarAzimuth", 60 },
-					{ "Throttle", 1 },
-					{ "ThrottleRaw", 1 },
-					{ "TrackTemp", 60 },
-					{ "TrackTempCrew", 60 },
-					{ "Voltage", 1 },
-					{ "WaterLevel", 1 },
-					{ "WaterTemp", 1 },
-					{ "WindDir", 60 },
-					{ "WindVel", 60 },
+					string => new EventTrack<string>( trackName, valueAsObject ),
+					int => new EventTrack<int>( trackName, valueAsObject ),
+					float => new EventTrack<float>( trackName, valueAsObject ),
+					_ => throw new Exception( $"Unexpected type ({valueAsObject?.GetType().Name})!" )
 				};
 
-				protected TelemetryDataTrack( IRacingSdkDatum datum, int index )
-				{
-					this.datum = datum;
-					this.index = index;
+				Tracks.Add( trackName, track );
 
-					if ( ManualSecondsPerValueDictionary.ContainsKey( datum.Name ) )
-					{
-						secondsPerValue = ManualSecondsPerValueDictionary[ datum.Name ];
-					}
-				}
-
-				public abstract void Update( int sessionNum, double sessionTime, int sessionTick, StringBuilder stringBuilder, IRacingSdkData data );
+				return track;
 			}
-
-			public class TelemetryDataTrack<T> : TelemetryDataTrack where T : IEquatable<T>
+			else
 			{
-				private bool initialized = false;
-				private T value;
-
-				public TelemetryDataTrack( IRacingSdkDatum datum, int index ) : base( datum, index )
-				{
-					object defaultValue = datum.VarType switch
-					{
-						IRacingSdkEnum.VarType.Char => (char) 0,
-						IRacingSdkEnum.VarType.Bool => false,
-						IRacingSdkEnum.VarType.Int => 0,
-						IRacingSdkEnum.VarType.BitField => (uint) 0,
-						IRacingSdkEnum.VarType.Float => 0.0f,
-						IRacingSdkEnum.VarType.Double => 0.0,
-						_ => throw new Exception( $"Unexpected type ({datum.VarType})!" )
-					};
-
-					value = (T) defaultValue;
-				}
-
-				public override void Update( int sessionNum, double sessionTime, int sessionTick, StringBuilder stringBuilder, IRacingSdkData data )
-				{
-					if ( !initialized || ( secondsPerValue == 0 ) || ( sessionTick % ( data.TickRate * secondsPerValue ) ) == 0 )
-					{
-						var newValue = (T) data.GetValue( datum, index );
-
-						if ( !initialized || !value.Equals( newValue ) )
-						{
-							stringBuilder.AppendLine( $" TD.{datum.Name}.{index}: {newValue}" );
-
-							events.Add( new Event<T>( sessionNum, sessionTime, newValue ) );
-
-							initialized = true;
-							value = newValue;
-
-							newValueCount++;
-						}
-					}
-
-					if ( ( secondsPerValue == 0 ) && ( newValueCount > 0 ) )
-					{
-						if ( ( sessionTick % ( data.TickRate / 5 ) ) == 0 )
-						{
-							newValueCount--;
-						}
-
-						if ( newValueCount >= 5 )
-						{
-							secondsPerValue = 1;
-						}
-					}
-				}
-			}
-
-			public abstract class SessionInfoTrack
-			{
-				protected readonly string propertyName;
-
-				protected readonly List<Event> events = new();
-
-				protected SessionInfoTrack( string propertyName )
-				{
-					this.propertyName = propertyName;
-				}
-
-				public abstract void Update( int sessionNum, double sessionTime, int sessionTick, StringBuilder stringBuilder, object valueAsObject );
-			}
-
-			public class SessionInfoTrack<T> : SessionInfoTrack where T : IEquatable<T>
-			{
-				private bool initialized = false;
-				private T value;
-
-				public SessionInfoTrack( string propertyName, object valueAsObject ) : base( propertyName )
-				{
-					object defaultValue = valueAsObject switch
-					{
-						string => string.Empty,
-						int => 0,
-						float => 0.0f,
-						_ => throw new Exception( $"Unexpected type ({valueAsObject.GetType().Name})!" )
-					};
-
-					value = (T) defaultValue;
-				}
-
-				public override void Update( int sessionNum, double sessionTime, int sessionTick, StringBuilder stringBuilder, object valueAsObject )
-				{
-					var newValue = (T) valueAsObject;
-
-					if ( !initialized || !value.Equals( newValue ) )
-					{
-						stringBuilder.AppendLine( $" SI.{propertyName}: {newValue}" );
-
-						events.Add( new Event<T>( sessionNum, sessionTime, newValue ) );
-
-						initialized = true;
-						value = newValue;
-					}
-				}
+				return Tracks[ trackName ];
 			}
 		}
 	}

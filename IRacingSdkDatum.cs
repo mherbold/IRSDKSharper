@@ -17,6 +17,17 @@ namespace HerboldRacing
 		public string Desc { get; }
 		public string Unit { get; }
 
+		public IRacingSdkDatum()
+		{
+			VarType = IRacingSdkEnum.VarType.Bool;
+			Offset = 0;
+			Count = 1;
+			CountAsTime = false;
+			Name = "Not initialized";
+			Desc = "Not initialized";
+			Unit = "Not initialized";
+		}
+
 		public IRacingSdkDatum( IRacingSdkEnum.VarType varType, int offset, int count, bool countAsTime, string name, string desc, string unit )
 		{
 			VarType = varType;

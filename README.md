@@ -5,6 +5,13 @@ If you find any bugs or have any questions or feedback or ideas or whatever, ple
 
 https://github.com/mherbold/IRSDKSharper
 
+# Requirements
+Memory based telemetry must be enabled in the iRacing Simulator for the features of this SDK to work.
+This setting can be found in the iRacing Simulator app.ini file.
+```
+irsdkEnableMem=1
+```
+
 # How to use it
 Here is an example basic project to demonstrate how to set up and use IRSDKSharper.
 IRSDKSharper can be found within the HerboldRacing namespace.
@@ -44,36 +51,36 @@ public partial class MainWindow : Window
 
     private void OnException( Exception exception )
     {
-        Debug.Log( "OnException() fired!" );
+        Debug.WriteLine( "OnException() fired!" );
     }
 
     private void OnConnected()
     {
-        Debug.Log( "OnConnected() fired!" );
+        Debug.WriteLine( "OnConnected() fired!" );
     }
 
     private void OnDisconnected()
     {
-        Debug.Log( "OnDisconnected() fired!" );
+        Debug.WriteLine( "OnDisconnected() fired!" );
     }
 
     private void OnSessionInfo()
     {
         var trackName = irsdkSharper.Data.SessionInfo.WeekendInfo.TrackName;
 
-        Debug.Log( $"OnSessionInfo fired! Track name is {trackName}." );
+        Debug.WriteLine( $"OnSessionInfo fired! Track name is {trackName}." );
     }
 
     private void OnTelemetryData()
     {
         var lapDistPct = irsdkSharper.Data.GetFloat( "CarIdxLapDistPct", 5 );
 
-        Debug.Log( $"OnTelemetryData fired! Lap dist pct for the 6th car in the array is {lapDistPct}." );
+        Debug.WriteLine( $"OnTelemetryData fired! Lap dist pct for the 6th car in the array is {lapDistPct}." );
     }
 
     private void OnStopped()
     {
-        Debug.Log( "OnStopped() fired!" );
+        Debug.WriteLine( "OnStopped() fired!" );
     }
 ```
 
@@ -258,11 +265,64 @@ int GetDoubleArray( IRacingSdkDatum datum, double[] array, int index, int count 
 To use these you could do something like:
 ```cs
 // you would do this once and save it somewhere
-var carIdxLapDistPctDatum = irsdkSharper.Data.TelemetryDataProperties[ "CarIdxLapDistPct ];
+var carIdxLapDistPctDatum = irsdkSharper.Data.TelemetryDataProperties[ "CarIdxLapDistPct" ];
 
 // and then now you can repeatedly call this for the most blisteringly fastest speed possible
 var lapDistPct = irsdkSharper.Data.GetFloat( carIdxLapDistPctDatum, 5 );
 ```
+
+# Event system (experimental)
+There is a new event system that is designed to fill in the missing holes in the telemetry data when replaying a session, and to give you an easy way to find various events without needing to scan the entire replay.
+There are also a extra calculated events that will give you information that isn't readily available in the raw telemetry data.
+
+This section will be expanded in the future with an in-depth guide on using the event system, but for now here's something to get you started.
+
+## Overview
+The event system is basically a List\<Event\> of events stored in Dictionary\<string, EventTrack\> tracks.
+The keys of the tracks dictionary are strings that corresponds directly to the telemetry data name.
+
+For example if you wanted to get to the events for the air density you would do -
+
+```cs
+var airDensityTrack = irsdk.EventSystem.Tracks[ "AirDensity" ]
+```
+
+Or to get the gear changes for carIdx=3 you would do -
+
+```cs
+var gearChangesTrack = irsdk.EventSystem.Tracks[ "CarIdxGear[3]" ]
+```
+
+Each event in the track is basically -
+```cs
+int SessionNum
+double SessionTime
+T Value
+```
+Where T is the data type of the event (int, float, etc.)
+
+## Initializing
+Call irsdkSharper.EnableEventSystem( directory ) at some point before calling irsdkSharper.Start().
+The directory parameter is where you want the event system to create its files in.
+
+Hook up some callbacks 
+```cs
+irsdk.OnEventSystemDataReset += OnEventSystemDataReset;
+irsdk.OnEventSystemDataLoaded += OnEventSystemDataLoaded;
+```
+
+The OnEventSystemDataReset is called whenever the events in the event system has been cleared out.
+The OnEventSystemDataLoaded is called whenevr the events in the event system has been loaded from file.
+These callbacks are useful if you have data from the event system being displayed via UI and need to know when to refresh the display.
+
+## Calculated events
+There is currently one calculated event that gives you data that is not readily available via the iRacing telemetry data, and that is the G force on each car in the direction along the track.
+Only G forces greater than +/-2.0g are recorded.
+To access it you would do something like -
+```cs
+var gForceTrack = irsdk.EventSystem.Tracks[ "CarIdxGForce[3]" ]
+```
+Using this information you can very easily tell exactly when a car experienced a collision of some sort.
 
 # Useful tips
 
