@@ -1,5 +1,7 @@
 ﻿
-namespace HerboldRacing
+using System;
+
+namespace IRSDKSharper
 {
 	public class IRacingSdkEnum
 	{
@@ -170,6 +172,18 @@ namespace HerboldRacing
 			SingleFileRestart,
 			DoubleFileRestart,
 			NotPacing
+		};
+
+		public enum TrackWetness
+		{
+			Unknown = 0,
+			Dry,
+			MostlyDry,
+			VeryLightlyWet,
+			LightlyWet,
+			ModeratelyWet,
+			VeryWet,
+			ExtremelyWet
 		};
 
 		[Flags]

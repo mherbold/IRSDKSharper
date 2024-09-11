@@ -1,109 +1,111 @@
 ﻿
+using System;
 using System.Collections;
-using System.Diagnostics;
+using System.Collections.Generic;
+using System.IO;
 
-namespace HerboldRacing
+namespace IRSDKSharper
 {
 	public partial class EventSystem
 	{
-		public Dictionary<string, EventTrack> Tracks { get; private set; } = new();
-		public static HashSet<string> DisallowedTelemetryDataNames { get; private set; } = new()
-			{
-				"CamCameraNumber",
-				"CamCameraState",
-				"CamCarIdx",
-				"CamGroupNumber",
-				"CarIdxEstTime",
-				"CarIdxLapDistPct",
-				"CarIdxRPM",
-				"CarIdxSteer",
-				"Engine0_RPM",
-				"IsDiskLoggingActive",
-				"IsDiskLoggingEnabled",
-				"IsGarageVisible",
-				"IsReplayPlaying",
-				"LapCurrentLapTime",
-				"LapDist",
-				"LapDistPct",
-				"LatAccel",
-				"LatAccel_ST",
-				"LFbrakeLinePress",
-				"LFshockDefl",
-				"LFshockDefl_ST",
-				"LFshockVel",
-				"LFshockVel_ST",
-				"LoadNumTextures",
-				"LongAccel",
-				"LongAccel_ST",
-				"LRbrakeLinePress",
-				"LRshockDefl",
-				"LRshockDefl_ST",
-				"LRshockVel",
-				"LRshockVel_ST",
-				"MemPageFaultSec",
-				"MemSoftPageFaultSec",
-				"OkToReloadTextures",
-				"Pitch",
-				"PitchRate",
-				"PitchRate_ST",
-				"ReplayFrameNum",
-				"ReplayFrameNumEnd",
-				"ReplayPlaySlowMotion",
-				"ReplayPlaySpeed",
-				"ReplaySessionNum",
-				"ReplaySessionTime",
-				"RFbrakeLinePress",
-				"RFshockDefl",
-				"RFshockDefl_ST",
-				"RFshockVel",
-				"RFshockVel_ST",
-				"Roll",
-				"RollRate",
-				"RollRate_ST",
-				"RPM",
-				"RRbrakeLinePress",
-				"RRshockDefl",
-				"RRshockDefl_ST",
-				"RRshockVel",
-				"RRshockVel_ST",
-				"SessionNum",
-				"SessionTick",
-				"SessionTime",
-				"Speed",
-				"SteeringWheelAngle",
-				"SteeringWheelLimiter",
-				"SteeringWheelMaxForceNm",
-				"SteeringWheelPctDamper",
-				"SteeringWheelPctIntensity",
-				"SteeringWheelPctSmoothing",
-				"SteeringWheelPctTorque",
-				"SteeringWheelPctTorqueSign",
-				"SteeringWheelPctTorqueSignStops",
-				"SteeringWheelPeakForceNm",
-				"SteeringWheelTorque",
-				"SteeringWheelTorque_ST",
-				"SteeringWheelUseLinear",
-				"TireLF_RumblePitch",
-				"TireLR_RumblePitch",
-				"TireRF_RumblePitch",
-				"TireRR_RumblePitch",
-				"VelocityX",
-				"VelocityX_ST",
-				"VelocityY",
-				"VelocityY_ST",
-				"VelocityZ",
-				"VelocityZ_ST",
-				"VertAccel",
-				"VertAccel_ST",
-				"VidCapActive",
-				"VidCapEnabled",
-				"Yaw",
-				"YawNorth",
-				"YawRate",
-				"YawRate_ST",
-			};
+		public Dictionary<string, EventTrack> Tracks { get; private set; } = new Dictionary<string, EventTrack>();
+		public static HashSet<string> DisallowedTelemetryDataNames { get; private set; } = new HashSet<string>
+		{
+			"CamCameraNumber",
+			"CamCameraState",
+			"CamCarIdx",
+			"CamGroupNumber",
+			"CarIdxEstTime",
+			"CarIdxLapDistPct",
+			"CarIdxRPM",
+			"CarIdxSteer",
+			"Engine0_RPM",
+			"IsDiskLoggingActive",
+			"IsDiskLoggingEnabled",
+			"IsGarageVisible",
+			"IsReplayPlaying",
+			"LapCurrentLapTime",
+			"LapDist",
+			"LapDistPct",
+			"LatAccel",
+			"LatAccel_ST",
+			"LFbrakeLinePress",
+			"LFshockDefl",
+			"LFshockDefl_ST",
+			"LFshockVel",
+			"LFshockVel_ST",
+			"LoadNumTextures",
+			"LongAccel",
+			"LongAccel_ST",
+			"LRbrakeLinePress",
+			"LRshockDefl",
+			"LRshockDefl_ST",
+			"LRshockVel",
+			"LRshockVel_ST",
+			"MemPageFaultSec",
+			"MemSoftPageFaultSec",
+			"OkToReloadTextures",
+			"Pitch",
+			"PitchRate",
+			"PitchRate_ST",
+			"ReplayFrameNum",
+			"ReplayFrameNumEnd",
+			"ReplayPlaySlowMotion",
+			"ReplayPlaySpeed",
+			"ReplaySessionNum",
+			"ReplaySessionTime",
+			"RFbrakeLinePress",
+			"RFshockDefl",
+			"RFshockDefl_ST",
+			"RFshockVel",
+			"RFshockVel_ST",
+			"Roll",
+			"RollRate",
+			"RollRate_ST",
+			"RPM",
+			"RRbrakeLinePress",
+			"RRshockDefl",
+			"RRshockDefl_ST",
+			"RRshockVel",
+			"RRshockVel_ST",
+			"SessionNum",
+			"SessionTick",
+			"SessionTime",
+			"Speed",
+			"SteeringWheelAngle",
+			"SteeringWheelLimiter",
+			"SteeringWheelMaxForceNm",
+			"SteeringWheelPctDamper",
+			"SteeringWheelPctIntensity",
+			"SteeringWheelPctSmoothing",
+			"SteeringWheelPctTorque",
+			"SteeringWheelPctTorqueSign",
+			"SteeringWheelPctTorqueSignStops",
+			"SteeringWheelPeakForceNm",
+			"SteeringWheelTorque",
+			"SteeringWheelTorque_ST",
+			"SteeringWheelUseLinear",
+			"TireLF_RumblePitch",
+			"TireLR_RumblePitch",
+			"TireRF_RumblePitch",
+			"TireRR_RumblePitch",
+			"VelocityX",
+			"VelocityX_ST",
+			"VelocityY",
+			"VelocityY_ST",
+			"VelocityZ",
+			"VelocityZ_ST",
+			"VertAccel",
+			"VertAccel_ST",
+			"VidCapActive",
+			"VidCapEnabled",
+			"Yaw",
+			"YawNorth",
+			"YawRate",
+			"YawRate_ST",
+		};
 
-		private readonly IRSDKSharper irsdkSharper;
+		private readonly IRacingSdk irsdkSharper;
 
 		private string directory = string.Empty;
 
@@ -117,21 +119,21 @@ namespace HerboldRacing
 		private double sessionTime = 0;
 		private int sessionTick = 0;
 
-		private BinaryWriter? binaryWriter = null;
+		private BinaryWriter binaryWriter = null;
 
 		private readonly Dictionary<string, short> trackNameDictionary = new();
 		private short lastUsedTrackNameId = 99;
 
 		private bool frameHeaderRecorded = false;
 
-		public EventSystem( IRSDKSharper irsdkSharper )
+		public EventSystem( IRacingSdk irsdkSharper )
 		{
 			this.irsdkSharper = irsdkSharper;
 		}
 
 		public void SetDirectory( string directory )
 		{
-			Debug.WriteLine( $"EventSystem - SetDirectory( {directory} )" );
+			irsdkSharper.Log( $"EventSystem - SetDirectory( {directory} )" );
 
 			this.directory = directory;
 
@@ -145,7 +147,7 @@ namespace HerboldRacing
 
 		public void Reset()
 		{
-			Debug.WriteLine( "EventSystem - Reset()" );
+			irsdkSharper.Log( "EventSystem - Reset()" );
 
 			irsdkSharper.FireOnEventSystemDataReset();
 
@@ -153,9 +155,9 @@ namespace HerboldRacing
 
 			subSessionID = -1;
 
-			sessionNumDatum = new();
-			sessionTimeDatum = new();
-			sessionTickDatum = new();
+			sessionNumDatum = new IRacingSdkDatum();
+			sessionTimeDatum = new IRacingSdkDatum();
+			sessionTickDatum = new IRacingSdkDatum();
 
 			sessionNum = 0;
 			sessionTime = 0;
@@ -178,7 +180,7 @@ namespace HerboldRacing
 			{
 				if ( subSessionID != sessionInfo.WeekendInfo.SubSessionID )
 				{
-					Debug.WriteLine( "EventSystem - sessionInfo.WeekendInfo.SubSessionID changed" );
+					irsdkSharper.Log( "EventSystem - sessionInfo.WeekendInfo.SubSessionID changed" );
 
 					Reset();
 
@@ -196,7 +198,7 @@ namespace HerboldRacing
 						}
 						else
 						{
-							Debug.WriteLine( "EventSystem - opening telemetry file stream" );
+							irsdkSharper.Log( "EventSystem - opening telemetry file stream" );
 
 							var stream = File.Open( filePath, FileMode.Append );
 
@@ -249,7 +251,7 @@ namespace HerboldRacing
 
 		private void Initialize( IRacingSdkData data )
 		{
-			Debug.WriteLine( "EventSystem - Initialize()" );
+			irsdkSharper.Log( "EventSystem - Initialize()" );
 
 			sessionNumDatum = data.TelemetryDataProperties[ "SessionNum" ];
 			sessionTimeDatum = data.TelemetryDataProperties[ "SessionTime" ];
@@ -261,15 +263,17 @@ namespace HerboldRacing
 				{
 					for ( var index = 0; index < keyValuePair.Value.Count; index++ )
 					{
-						EventTrack eventTrack = keyValuePair.Value.VarType switch
+						EventTrack eventTrack;
+
+						switch ( keyValuePair.Value.VarType )
 						{
-							IRacingSdkEnum.VarType.Char => new EventTrack<string>( keyValuePair.Value, index ),
-							IRacingSdkEnum.VarType.Bool => new EventTrack<bool>( keyValuePair.Value, index ),
-							IRacingSdkEnum.VarType.Int => new EventTrack<int>( keyValuePair.Value, index ),
-							IRacingSdkEnum.VarType.BitField => new EventTrack<uint>( keyValuePair.Value, index ),
-							IRacingSdkEnum.VarType.Float => new EventTrack<float>( keyValuePair.Value, index ),
-							IRacingSdkEnum.VarType.Double => new EventTrack<double>( keyValuePair.Value, index ),
-							_ => throw new Exception( $"Unexpected type ({keyValuePair.Value.VarType})!" )
+							case IRacingSdkEnum.VarType.Char: eventTrack = new EventTrack<string>( keyValuePair.Value, index ); break;
+							case IRacingSdkEnum.VarType.Bool: eventTrack = new EventTrack<bool>( keyValuePair.Value, index ); break;
+							case IRacingSdkEnum.VarType.Int: eventTrack = new EventTrack<int>( keyValuePair.Value, index ); break;
+							case IRacingSdkEnum.VarType.BitField: eventTrack = new EventTrack<uint>( keyValuePair.Value, index ); break;
+							case IRacingSdkEnum.VarType.Float: eventTrack = new EventTrack<float>( keyValuePair.Value, index ); break;
+							case IRacingSdkEnum.VarType.Double: eventTrack = new EventTrack<double>( keyValuePair.Value, index ); break;
+							default: throw new Exception( $"Unexpected type ({keyValuePair.Value.VarType})!" );
 						};
 
 						Tracks.Add( eventTrack.ToString(), eventTrack );
@@ -282,11 +286,11 @@ namespace HerboldRacing
 
 		private void LoadEvents( string filePath )
 		{
-			Debug.WriteLine( $"EventSystem - LoadEvents( {filePath} )" );
+			irsdkSharper.Log( $"EventSystem - LoadEvents( {filePath} )" );
 
 			if ( !File.Exists( filePath ) )
 			{
-				Debug.WriteLine( $"Warning - Event system file '{filePath}' does not exist." );
+				irsdkSharper.Log( $"Warning - Event system file '{filePath}' does not exist." );
 
 				return;
 			}
@@ -315,24 +319,26 @@ namespace HerboldRacing
 					{
 						trackNameId = binaryReader.ReadInt16();
 						var varType = (IRacingSdkEnum.VarType) binaryReader.ReadChar();
-						string trackName = binaryReader.ReadString();
+						var trackName = binaryReader.ReadString();
 
 						trackNameIdDictionary[ trackNameId ] = trackName;
 
 						if ( !Tracks.ContainsKey( trackName ) )
 						{
-							EventTrack track = varType switch
+							EventTrack eventTrack;
+
+							switch ( varType )
 							{
-								IRacingSdkEnum.VarType.Char => new EventTrack<string>( trackName, varType ),
-								IRacingSdkEnum.VarType.Bool => new EventTrack<bool>( trackName, varType ),
-								IRacingSdkEnum.VarType.Int => new EventTrack<int>( trackName, varType ),
-								IRacingSdkEnum.VarType.BitField => new EventTrack<uint>( trackName, varType ),
-								IRacingSdkEnum.VarType.Float => new EventTrack<float>( trackName, varType ),
-								IRacingSdkEnum.VarType.Double => new EventTrack<double>( trackName, varType ),
-								_ => throw new Exception( $"Unexpected type ({varType})!" )
+								case IRacingSdkEnum.VarType.Char: eventTrack = new EventTrack<string>( trackName, varType ); break;
+								case IRacingSdkEnum.VarType.Bool: eventTrack = new EventTrack<bool>( trackName, varType ); break;
+								case IRacingSdkEnum.VarType.Int: eventTrack = new EventTrack<int>( trackName, varType ); break;
+								case IRacingSdkEnum.VarType.BitField: eventTrack = new EventTrack<uint>( trackName, varType ); break;
+								case IRacingSdkEnum.VarType.Float: eventTrack = new EventTrack<float>( trackName, varType ); break;
+								case IRacingSdkEnum.VarType.Double: eventTrack = new EventTrack<double>( trackName, varType ); break;
+								default: throw new Exception( $"Unexpected type ({varType})!" );
 							};
 
-							Tracks.Add( trackName, track );
+							Tracks.Add( trackName, eventTrack );
 						}
 					}
 					else
@@ -359,7 +365,7 @@ namespace HerboldRacing
 			}
 		}
 
-		private void RecordSessionInfoChanges( string trackName, object? valueAsObject )
+		private void RecordSessionInfoChanges( string trackName, object valueAsObject )
 		{
 			if ( valueAsObject != null )
 			{
@@ -406,21 +412,23 @@ namespace HerboldRacing
 			}
 		}
 
-		private EventTrack CreateEventTrack( string trackName, object? valueAsObject )
+		private EventTrack CreateEventTrack( string trackName, object valueAsObject )
 		{
 			if ( !Tracks.ContainsKey( trackName ) )
 			{
-				EventTrack track = valueAsObject switch
+				EventTrack eventTrack;
+
+				switch ( Type.GetTypeCode( valueAsObject.GetType() ) )
 				{
-					string => new EventTrack<string>( trackName, valueAsObject ),
-					int => new EventTrack<int>( trackName, valueAsObject ),
-					float => new EventTrack<float>( trackName, valueAsObject ),
-					_ => throw new Exception( $"Unexpected type ({valueAsObject?.GetType().Name})!" )
+					case TypeCode.String: eventTrack = new EventTrack<string>( trackName, valueAsObject ); break;
+					case TypeCode.Int32: eventTrack = new EventTrack<int>( trackName, valueAsObject ); break;
+					case TypeCode.Single: eventTrack = new EventTrack<float>( trackName, valueAsObject ); break;
+					default: throw new Exception( $"Unexpected type ({valueAsObject?.GetType().Name})!" );
 				};
 
-				Tracks.Add( trackName, track );
+				Tracks.Add( trackName, eventTrack );
 
-				return track;
+				return eventTrack;
 			}
 			else
 			{

@@ -1,13 +1,17 @@
 ﻿
+using System;
 using System.Diagnostics;
+using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 using Microsoft.Win32.SafeHandles;
 
-namespace HerboldRacing
+namespace IRSDKSharper
 {
-	public class IRSDKSharper
+	public class IRacingSdk
 	{
 		private const string MapName = "Local\\IRSDKMemMapFileName";
 		private const string EventName = "Local\\IRSDKDataValidEvent";
@@ -22,14 +26,15 @@ namespace HerboldRacing
 
 		public EventSystem EventSystem { get; private set; }
 
-		public event Action<Exception>? OnException = null;
-		public event Action? OnConnected = null;
-		public event Action? OnDisconnected = null;
-		public event Action? OnSessionInfo = null;
-		public event Action? OnTelemetryData = null;
-		public event Action? OnEventSystemDataReset = null;
-		public event Action? OnEventSystemDataLoaded = null;
-		public event Action? OnStopped = null;
+		public event Action<Exception> OnException = null;
+		public event Action OnConnected = null;
+		public event Action OnDisconnected = null;
+		public event Action OnSessionInfo = null;
+		public event Action OnTelemetryData = null;
+		public event Action OnEventSystemDataReset = null;
+		public event Action OnEventSystemDataLoaded = null;
+		public event Action OnStopped = null;
+		public event Action<string> OnDebugLog = null;
 
 		private int keepThreadsAlive = 0;
 
@@ -37,24 +42,24 @@ namespace HerboldRacing
 		private bool telemetryDataLoopRunning = false;
 		private bool sessionInfoLoopRunning = false;
 
-		private MemoryMappedFile? memoryMappedFile = null;
-		private MemoryMappedViewAccessor? memoryMappedViewAccessor = null;
+		private MemoryMappedFile memoryMappedFile = null;
+		private MemoryMappedViewAccessor memoryMappedViewAccessor = null;
 
-		private AutoResetEvent? simulatorAutoResetEvent = null;
-		private AutoResetEvent? sessionInfoAutoResetEvent = null;
+		private AutoResetEvent simulatorAutoResetEvent = null;
+		private AutoResetEvent sessionInfoAutoResetEvent = null;
 
 		private int lastTelemetryDataUpdate = -1;
 
 		private int lastSessionInfoUpdate = 0;
 		private int sessionInfoUpdateReady = 0;
 
-		private readonly uint broadcastWindowMessage = Windows.RegisterWindowMessage( BroadcastMessageName );
+		private readonly uint broadcastWindowMessage = WinApi.RegisterWindowMessage( BroadcastMessageName );
 
 		/// <summary>
 		/// <para>Welcome to IRSDKSharper!</para>
 		/// This is the basic process to start it up:
 		/// <code>
-		/// var irsdk = new IRSDKSharper();
+		/// var irsdk = new IRacingSDK();
 		/// 
 		/// irsdk.OnException += OnException;
 		/// irsdk.OnConnected += OnConnected;
@@ -63,34 +68,32 @@ namespace HerboldRacing
 		/// irsdk.OnTelemetryData += OnTelemetryData;
 		/// irsdk.OnStopped += OnStopped;
 		/// 
-		/// irsdkSharper.Start();
+		/// irsdk.Start();
 		/// </code>
 		/// </summary>
 		/// <param name="throwYamlExceptions">Set this to true to throw exceptions when our IRacingSdkSessionInfo class is missing properties that exist in the YAML data string.</param>
-		public IRSDKSharper( bool throwYamlExceptions = false )
+		public IRacingSdk( bool throwYamlExceptions = false )
 		{
-			Debug.WriteLine( "IRSDKSharper is being instantiated." );
+			Data = new IRacingSdkData( throwYamlExceptions );
 
-			Data = new( throwYamlExceptions );
-
-			EventSystem = new( this );
+			EventSystem = new EventSystem( this );
 		}
 
 		public void Start()
 		{
 			if ( Interlocked.Exchange( ref keepThreadsAlive, 1 ) == 1 )
 			{
-				Debug.WriteLine( "IRSDKSharper has already been started or is starting." );
+				Log( "IRSDKSharper has already been started or is starting." );
 			}
 			else
 			{
-				Debug.WriteLine( "IRSDKSharper is starting." );
+				Log( "IRSDKSharper is starting." );
 
 				Task.Run( ConnectionLoop );
 
 				IsStarted = true;
 
-				Debug.WriteLine( "IRSDKSharper has been started." );
+				Log( "IRSDKSharper has been started." );
 			}
 		}
 
@@ -98,17 +101,17 @@ namespace HerboldRacing
 		{
 			if ( Interlocked.Exchange( ref keepThreadsAlive, 0 ) == 0 )
 			{
-				Debug.WriteLine( "IRSDKSharper has already been stopped or is stopping." );
+				Log( "IRSDKSharper has already been stopped or is stopping." );
 			}
 			else
 			{
-				Debug.WriteLine( "IRSDKSharper is stopping." );
+				Log( "IRSDKSharper is stopping." );
 
 				Task.Run( () =>
 				{
 					if ( sessionInfoLoopRunning )
 					{
-						Debug.WriteLine( "Waiting for session info loop to stop." );
+						Log( "Waiting for session info loop to stop." );
 
 						sessionInfoAutoResetEvent?.Set();
 
@@ -120,7 +123,7 @@ namespace HerboldRacing
 
 					if ( telemetryDataLoopRunning )
 					{
-						Debug.WriteLine( "Waiting for telemetry data loop to stop." );
+						Log( "Waiting for telemetry data loop to stop." );
 
 						while ( telemetryDataLoopRunning )
 						{
@@ -132,7 +135,7 @@ namespace HerboldRacing
 
 					if ( connectionLoopRunning )
 					{
-						Debug.WriteLine( "Waiting for connection loop to stop." );
+						Log( "Waiting for connection loop to stop." );
 
 						while ( connectionLoopRunning )
 						{
@@ -156,7 +159,7 @@ namespace HerboldRacing
 
 					EventSystem.Reset();
 
-					Debug.WriteLine( "IRSDKSharper has been stopped." );
+					Log( "IRSDKSharper has been stopped." );
 
 					OnStopped?.Invoke();
 				} );
@@ -166,7 +169,7 @@ namespace HerboldRacing
 		/// <summary>
 		/// This event system feature is currently experimental.
 		/// </summary>
-		public void EnableEventSystem( string? directory )
+		public void EnableEventSystem( string directory )
 		{
 			EventSystem.SetDirectory( directory ?? string.Empty );
 		}
@@ -269,9 +272,9 @@ namespace HerboldRacing
 
 		private void BroadcastMessage( IRacingSdkEnum.BroadcastMsg msg, short var1, int var2 = 0 )
 		{
-			if ( !Windows.PostMessage( (IntPtr) 0xFFFF, broadcastWindowMessage, Windows.MakeLong( (short) msg, var1 ), (IntPtr) var2 ) )
+			if ( !WinApi.PostMessage( (IntPtr) 0xFFFF, broadcastWindowMessage, WinApi.MakeLong( (short) msg, var1 ), (IntPtr) var2 ) )
 			{
-				int errorCode = Marshal.GetLastWin32Error();
+				var errorCode = Marshal.GetLastWin32Error();
 
 				Marshal.ThrowExceptionForHR( errorCode, IntPtr.Zero );
 			}
@@ -279,9 +282,9 @@ namespace HerboldRacing
 
 		private void BroadcastMessage( IRacingSdkEnum.BroadcastMsg msg, short var1, float var2 )
 		{
-			if ( !Windows.PostMessage( (IntPtr) 0xFFFF, broadcastWindowMessage, Windows.MakeLong( (short) msg, var1 ), (IntPtr) ( var2 * 65536.0f ) ) )
+			if ( !WinApi.PostMessage( (IntPtr) 0xFFFF, broadcastWindowMessage, WinApi.MakeLong( (short) msg, var1 ), (IntPtr) ( var2 * 65536.0f ) ) )
 			{
-				int errorCode = Marshal.GetLastWin32Error();
+				var errorCode = Marshal.GetLastWin32Error();
 
 				Marshal.ThrowExceptionForHR( errorCode, IntPtr.Zero );
 			}
@@ -289,9 +292,9 @@ namespace HerboldRacing
 
 		private void BroadcastMessage( IRacingSdkEnum.BroadcastMsg msg, short var1, short var2, short var3 )
 		{
-			if ( !Windows.PostMessage( (IntPtr) 0xFFFF, broadcastWindowMessage, Windows.MakeLong( (short) msg, var1 ), Windows.MakeLong( var2, var3 ) ) )
+			if ( !WinApi.PostMessage( (IntPtr) 0xFFFF, broadcastWindowMessage, WinApi.MakeLong( (short) msg, var1 ), WinApi.MakeLong( var2, var3 ) ) )
 			{
-				int errorCode = Marshal.GetLastWin32Error();
+				var errorCode = Marshal.GetLastWin32Error();
 
 				Marshal.ThrowExceptionForHR( errorCode, IntPtr.Zero );
 			}
@@ -303,7 +306,7 @@ namespace HerboldRacing
 
 		private void ConnectionLoop()
 		{
-			Debug.WriteLine( "Connection loop has been started." );
+			Log( "Connection loop has been started." );
 
 			try
 			{
@@ -324,7 +327,7 @@ namespace HerboldRacing
 
 					if ( memoryMappedFile != null )
 					{
-						Debug.WriteLine( "memoryMappedFile != null" );
+						Log( "memoryMappedFile != null" );
 
 						memoryMappedViewAccessor = memoryMappedFile.CreateViewAccessor();
 
@@ -335,11 +338,11 @@ namespace HerboldRacing
 
 						Data.SetMemoryMappedViewAccessor( memoryMappedViewAccessor );
 
-						var hEvent = Windows.OpenEvent( Windows.EVENT_ALL_ACCESS, false, EventName );
+						var hEvent = WinApi.OpenEvent( WinApi.EVENT_ALL_ACCESS, false, EventName );
 
 						if ( hEvent == (IntPtr) null )
 						{
-							int errorCode = Marshal.GetLastWin32Error();
+							var errorCode = Marshal.GetLastWin32Error();
 
 							Marshal.ThrowExceptionForHR( errorCode, IntPtr.Zero );
 						}
@@ -368,19 +371,19 @@ namespace HerboldRacing
 			}
 			catch ( Exception exception )
 			{
-				Debug.WriteLine( "Exception caught inside the connection loop." );
+				Log( "Exception caught inside the connection loop." );
 
 				connectionLoopRunning = false;
 
 				OnException?.Invoke( exception );
 			}
 
-			Debug.WriteLine( "Connection loop has been stopped." );
+			Log( "Connection loop has been stopped." );
 		}
 
 		private void SessionInfoLoop()
 		{
-			Debug.WriteLine( "Session info loop has been started." );
+			Log( "Session info loop has been started." );
 
 			try
 			{
@@ -388,13 +391,13 @@ namespace HerboldRacing
 
 				while ( keepThreadsAlive == 1 )
 				{
-					// Debug.WriteLine( "Waiting for session info event." );
+					// Debug.Log( "Waiting for session info event." );
 
 					sessionInfoAutoResetEvent?.WaitOne();
 
 					if ( ( keepThreadsAlive == 1 ) && IsConnected )
 					{
-						// Debug.WriteLine( "Updating session info." );
+						// Debug.Log( "Updating session info." );
 
 						if ( Data.UpdateSessionInfo() )
 						{
@@ -407,19 +410,19 @@ namespace HerboldRacing
 			}
 			catch ( Exception exception )
 			{
-				Debug.WriteLine( "Exception caught inside the session info loop." );
+				Log( "Exception caught inside the session info loop." );
 
 				sessionInfoLoopRunning = false;
 
 				OnException?.Invoke( exception );
 			}
 
-			Debug.WriteLine( "Session info loop has been stopped." );
+			Log( "Session info loop has been stopped." );
 		}
 
 		private void TelemetryDataLoop()
 		{
-			Debug.WriteLine( "Telemetry data loop has been started." );
+			Log( "Telemetry data loop has been started." );
 
 			try
 			{
@@ -433,7 +436,7 @@ namespace HerboldRacing
 					{
 						if ( !IsConnected )
 						{
-							Debug.WriteLine( "The iRacing simulator is running." );
+							Log( "The iRacing simulator is running." );
 
 							IsConnected = true;
 
@@ -449,7 +452,7 @@ namespace HerboldRacing
 
 						if ( ( lastSessionInfoUpdate != Data.SessionInfoUpdate ) || ( Data.TickCount >= Data.retryUpdateSessionInfoAfterTickCount ) )
 						{
-							// Debug.WriteLine( "Data.SessionInfoUpdate has changed." );
+							// Debug.Log( "Data.SessionInfoUpdate has changed." );
 
 							lastSessionInfoUpdate = Data.SessionInfoUpdate;
 
@@ -462,7 +465,7 @@ namespace HerboldRacing
 
 						if ( Interlocked.Exchange( ref sessionInfoUpdateReady, 0 ) == 1 )
 						{
-							// Debug.WriteLine( "Invoking OnSessionInfo." );
+							// Debug.Log( "Invoking OnSessionInfo." );
 
 							OnSessionInfo?.Invoke();
 						}
@@ -478,11 +481,11 @@ namespace HerboldRacing
 					{
 						if ( IsConnected )
 						{
-							Debug.WriteLine( "The iRacing simulator is no longer running." );
+							Log( "The iRacing simulator is no longer running." );
 
 							IsConnected = false;
 
-							Debug.WriteLine( "Invoking OnDisconnected." );
+							Log( "Invoking OnDisconnected." );
 
 							OnDisconnected?.Invoke();
 
@@ -497,14 +500,24 @@ namespace HerboldRacing
 			}
 			catch ( Exception exception )
 			{
-				Debug.WriteLine( "Exception caught inside the telemetry data loop." );
+				Log( "Exception caught inside the telemetry data loop." );
 
 				telemetryDataLoopRunning = false;
 
 				OnException?.Invoke( exception );
 			}
 
-			Debug.WriteLine( "Telemetry data loop has been stopped." );
+			Log( "Telemetry data loop has been stopped." );
+		}
+
+		#endregion
+
+		#region Debug logging
+
+		[Conditional( "DEBUG" )]
+		public void Log( string message )
+		{
+			OnDebugLog?.Invoke( message );
 		}
 
 		#endregion

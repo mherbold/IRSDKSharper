@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.6.33801.468
+VisualStudioVersion = 17.11.35219.272
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IRSDKSharper", "IRSDKSharper.csproj", "{76C20468-C66C-49F2-BDC1-189467C5A49A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IRSDKSharper", "IRSDKSharper.csproj", "{32F029B2-6E95-43BE-8497-9414DEFC80ED}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,15 +11,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{76C20468-C66C-49F2-BDC1-189467C5A49A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{76C20468-C66C-49F2-BDC1-189467C5A49A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{76C20468-C66C-49F2-BDC1-189467C5A49A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{76C20468-C66C-49F2-BDC1-189467C5A49A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{32F029B2-6E95-43BE-8497-9414DEFC80ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{32F029B2-6E95-43BE-8497-9414DEFC80ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{32F029B2-6E95-43BE-8497-9414DEFC80ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{32F029B2-6E95-43BE-8497-9414DEFC80ED}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {FB0E7118-E131-43EC-9B26-775571B15355}
+		SolutionGuid = {1995E9D2-4140-439C-B08E-EDB0F1C52FB7}
 	EndGlobalSection
 EndGlobal

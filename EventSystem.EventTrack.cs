@@ -1,18 +1,21 @@
 ﻿
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Runtime.CompilerServices;
 
-namespace HerboldRacing
+namespace IRSDKSharper
 {
 	public partial class EventSystem
 	{
 		public abstract class EventTrack
 		{
-			public List<Event> Events { get; private set; } = new();
+			public List<Event> Events { get; private set; } = new List<Event>();
 
 			protected readonly string trackName;
 
 			protected readonly IRacingSdkEnum.VarType varType;
-			protected readonly IRacingSdkDatum? datum;
+			protected readonly IRacingSdkDatum datum;
 			protected readonly int datumIndex;
 
 			protected bool initialized = false;
@@ -24,55 +27,55 @@ namespace HerboldRacing
 
 			private int eventIndex = 0;
 
-			public static Dictionary<string, int> TrackNamesAndDataRates { get; private set; } = new()
-				{
-					{ "AirDensity", 60 },
-					{ "AirPressure", 60 },
-					{ "AirTemp", 60 },
-					{ "Brake", 1 },
-					{ "BrakeRaw", 1 },
-					{ "CarIdxRPM", 1 },
-					{ "ChanAvgLatency", 15 },
-					{ "ChanClockSkew", 15 },
-					{ "ChanLatency", 15 },
-					{ "ChanPartnerQuality", 15 },
-					{ "ChanQuality", 15 },
-					{ "Clutch", 1 },
-					{ "ClutchRaw", 1 },
-					{ "CpuUsageBG", 60 },
-					{ "CpuUsageFG", 60 },
-					{ "dcBrakeBias", 1 },
-					{ "Engine0_RPM", 1 },
-					{ "FogLevel", 60 },
-					{ "FrameRate", 60 },
-					{ "FuelLevel", 1 },
-					{ "FuelLevelPct", 1 },
-					{ "FuelPress", 1 },
-					{ "FuelUsePerHour", 1 },
-					{ "GpuUsage", 60 },
-					{ "HandbrakeRaw", 1 },
-					{ "ManifoldPress", 1 },
-					{ "OilLevel", 1 },
-					{ "OilPress", 1 },
-					{ "OilTemp", 1 },
-					{ "PlayerCarTowTime", 1 },
-					{ "Precipitation", 60 },
-					{ "RelativeHumidity", 60 },
-					{ "RPM", 1 },
-					{ "SessionTimeOfDay", 60 },
-					{ "SessionTimeRemain", 1 },
-					{ "SolarAltitude", 60 },
-					{ "SolarAzimuth", 60 },
-					{ "Throttle", 1 },
-					{ "ThrottleRaw", 1 },
-					{ "TrackTemp", 60 },
-					{ "TrackTempCrew", 60 },
-					{ "Voltage", 1 },
-					{ "WaterLevel", 1 },
-					{ "WaterTemp", 1 },
-					{ "WindDir", 60 },
-					{ "WindVel", 60 },
-				};
+			public static Dictionary<string, int> TrackNamesAndDataRates { get; private set; } = new Dictionary<string, int>
+			{
+				{ "AirDensity", 60 },
+				{ "AirPressure", 60 },
+				{ "AirTemp", 60 },
+				{ "Brake", 1 },
+				{ "BrakeRaw", 1 },
+				{ "CarIdxRPM", 1 },
+				{ "ChanAvgLatency", 15 },
+				{ "ChanClockSkew", 15 },
+				{ "ChanLatency", 15 },
+				{ "ChanPartnerQuality", 15 },
+				{ "ChanQuality", 15 },
+				{ "Clutch", 1 },
+				{ "ClutchRaw", 1 },
+				{ "CpuUsageBG", 60 },
+				{ "CpuUsageFG", 60 },
+				{ "dcBrakeBias", 1 },
+				{ "Engine0_RPM", 1 },
+				{ "FogLevel", 60 },
+				{ "FrameRate", 60 },
+				{ "FuelLevel", 1 },
+				{ "FuelLevelPct", 1 },
+				{ "FuelPress", 1 },
+				{ "FuelUsePerHour", 1 },
+				{ "GpuUsage", 60 },
+				{ "HandbrakeRaw", 1 },
+				{ "ManifoldPress", 1 },
+				{ "OilLevel", 1 },
+				{ "OilPress", 1 },
+				{ "OilTemp", 1 },
+				{ "PlayerCarTowTime", 1 },
+				{ "Precipitation", 60 },
+				{ "RelativeHumidity", 60 },
+				{ "RPM", 1 },
+				{ "SessionTimeOfDay", 60 },
+				{ "SessionTimeRemain", 1 },
+				{ "SolarAltitude", 60 },
+				{ "SolarAzimuth", 60 },
+				{ "Throttle", 1 },
+				{ "ThrottleRaw", 1 },
+				{ "TrackTemp", 60 },
+				{ "TrackTempCrew", 60 },
+				{ "Voltage", 1 },
+				{ "WaterLevel", 1 },
+				{ "WaterTemp", 1 },
+				{ "WindDir", 60 },
+				{ "WindVel", 60 },
+			};
 
 			public override string ToString()
 			{
@@ -104,16 +107,16 @@ namespace HerboldRacing
 			{
 				this.trackName = trackName;
 
-				varType = valueAsObject switch
+				switch ( Type.GetTypeCode( valueAsObject.GetType() ) )
 				{
-					string => IRacingSdkEnum.VarType.Char,
-					int => IRacingSdkEnum.VarType.Int,
-					float => IRacingSdkEnum.VarType.Float,
-					_ => throw new Exception( $"Unexpected type ({valueAsObject.GetType().Name})!" ),
+					case TypeCode.String: varType = IRacingSdkEnum.VarType.Char; break;
+					case TypeCode.Int32: varType = IRacingSdkEnum.VarType.Int; break;
+					case TypeCode.Single: varType = IRacingSdkEnum.VarType.Float; break;
+					default: throw new Exception( $"Unexpected type ({valueAsObject.GetType().Name})!" );
 				};
 			}
 
-			public Event? GetAt( int sessionNum, double sessionTime )
+			public Event GetAt( int sessionNum, double sessionTime )
 			{
 				if ( Events.Count == 0 )
 				{
@@ -156,16 +159,16 @@ namespace HerboldRacing
 				}
 			}
 
-			public abstract Event? Record( EventSystem eventSystem, IRacingSdkData data );
+			public abstract Event Record( EventSystem eventSystem, IRacingSdkData data );
 
-			public abstract Event? Record( EventSystem eventSystem, object newValueAsObject );
+			public abstract Event Record( EventSystem eventSystem, object newValueAsObject );
 
 			public abstract void Load( int sessionNum, double sessionTime, BinaryReader binaryReader );
 		}
 
-		public class EventTrack<T> : EventTrack where T : notnull, IEquatable<T>
+		public class EventTrack<T> : EventTrack
 		{
-			private T value = default!;
+			private T value = default;
 
 			public EventTrack( string trackName, IRacingSdkEnum.VarType varType ) : base( trackName, varType )
 			{
@@ -184,23 +187,25 @@ namespace HerboldRacing
 
 			private object GetDefaultValueAsObject()
 			{
-				object defaultValue = varType switch
+				object defaultValue;
+
+				switch ( varType )
 				{
-					IRacingSdkEnum.VarType.Char => string.Empty,
-					IRacingSdkEnum.VarType.Bool => false,
-					IRacingSdkEnum.VarType.Int => 0,
-					IRacingSdkEnum.VarType.BitField => (uint) 0,
-					IRacingSdkEnum.VarType.Float => 0.0f,
-					IRacingSdkEnum.VarType.Double => 0.0,
-					_ => throw new Exception( $"Unexpected type ({varType})!" ),
+					case IRacingSdkEnum.VarType.Char: defaultValue = string.Empty; break;
+					case IRacingSdkEnum.VarType.Bool: defaultValue = false; break;
+					case IRacingSdkEnum.VarType.Int: defaultValue = 0; break;
+					case IRacingSdkEnum.VarType.BitField: defaultValue = (uint) 0; break;
+					case IRacingSdkEnum.VarType.Float: defaultValue = 0.0f; break;
+					case IRacingSdkEnum.VarType.Double: defaultValue = 0.0; break;
+					default: throw new Exception( $"Unexpected type ({varType})!" );
 				};
 
 				return defaultValue;
 			}
 
-			public override Event? Record( EventSystem eventSystem, IRacingSdkData data )
+			public override Event Record( EventSystem eventSystem, IRacingSdkData data )
 			{
-				Event? _event = null;
+				Event _event = null;
 
 				if ( datum != null )
 				{
@@ -270,9 +275,9 @@ namespace HerboldRacing
 				return _event;
 			}
 
-			public override Event? Record( EventSystem eventSystem, object newValueAsObject )
+			public override Event Record( EventSystem eventSystem, object newValueAsObject )
 			{
-				Event? _event = null;
+				Event _event = null;
 
 				var newValueAsT = (T) newValueAsObject;
 
@@ -306,15 +311,17 @@ namespace HerboldRacing
 
 			public override void Load( int sessionNum, double sessionTime, BinaryReader binaryReader )
 			{
-				object newValueAsObject = varType switch
+				object newValueAsObject;
+
+				switch ( varType )
 				{
-					IRacingSdkEnum.VarType.Char => binaryReader.ReadString(),
-					IRacingSdkEnum.VarType.Bool => binaryReader.ReadBoolean(),
-					IRacingSdkEnum.VarType.Int => binaryReader.ReadInt32(),
-					IRacingSdkEnum.VarType.BitField => binaryReader.ReadUInt32(),
-					IRacingSdkEnum.VarType.Float => binaryReader.ReadSingle(),
-					IRacingSdkEnum.VarType.Double => binaryReader.ReadDouble(),
-					_ => throw new Exception( $"Unexpected type ({varType})!" )
+					case IRacingSdkEnum.VarType.Char: newValueAsObject = binaryReader.ReadString(); break;
+					case IRacingSdkEnum.VarType.Bool: newValueAsObject = binaryReader.ReadBoolean(); break;
+					case IRacingSdkEnum.VarType.Int: newValueAsObject = binaryReader.ReadInt32(); break;
+					case IRacingSdkEnum.VarType.BitField: newValueAsObject = binaryReader.ReadUInt32(); break;
+					case IRacingSdkEnum.VarType.Float: newValueAsObject = binaryReader.ReadSingle(); break;
+					case IRacingSdkEnum.VarType.Double: newValueAsObject = binaryReader.ReadDouble(); break;
+					default: throw new Exception( $"Unexpected type ({varType})!" );
 				};
 
 				Events.Add( new Event<T>( sessionNum, sessionTime, (T) newValueAsObject, datum ) );

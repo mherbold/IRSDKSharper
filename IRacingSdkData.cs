@@ -1,18 +1,22 @@
 ﻿
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using System.Text;
 
 using YamlDotNet.Serialization;
 
-namespace HerboldRacing
+namespace IRSDKSharper
 {
 	public class IRacingSdkData
 	{
+		public bool TelemetryDataPropertiesReady { get; private set; } = false;
 		public readonly Dictionary<string, IRacingSdkDatum> TelemetryDataProperties = new();
 		public string SessionInfoYaml { get; private set; } = string.Empty;
-		public IRacingSdkSessionInfo? SessionInfo { get; private set; } = null;
+		public IRacingSdkSessionInfo SessionInfo { get; private set; } = null;
 
 		public int Version => memoryMappedViewAccessor?.ReadInt32( 0 ) ?? 0;
 		public int Status => memoryMappedViewAccessor?.ReadInt32( 4 ) ?? 0;
@@ -29,6 +33,10 @@ namespace HerboldRacing
 		public int Offset { get; private set; } = 0;
 		public int FramesDropped { get; private set; } = 0;
 
+		public IRacingSdkHeaderDataAsList headerDataAsList;
+		public IRacingSdkSessionInfoAsList sessionInfoAsList;
+		public IRacingSdkTelemetryDataAsList telemetryDataAsList;
+
 		public int retryUpdateSessionInfoAfterTickCount = int.MaxValue;
 
 		private readonly bool throwYamlExceptions;
@@ -36,13 +44,19 @@ namespace HerboldRacing
 		private readonly Encoding encoding;
 		private readonly IDeserializer deserializer;
 
-		private MemoryMappedViewAccessor? memoryMappedViewAccessor = null;
+		private MemoryMappedViewAccessor memoryMappedViewAccessor = null;
 
 		public IRacingSdkData( bool throwYamlExceptions )
 		{
 			this.throwYamlExceptions = throwYamlExceptions;
 
+			headerDataAsList = new IRacingSdkHeaderDataAsList( this );
+			sessionInfoAsList = new IRacingSdkSessionInfoAsList( this );
+			telemetryDataAsList = new IRacingSdkTelemetryDataAsList( this );
+
+#if !NET471 && !NET_UNITY_4_8
 			Encoding.RegisterProvider( CodePagesEncodingProvider.Instance );
+#endif
 
 			encoding = Encoding.GetEncoding( 1252 );
 
@@ -63,7 +77,9 @@ namespace HerboldRacing
 
 		public void Reset()
 		{
+			TelemetryDataPropertiesReady = false;
 			TelemetryDataProperties.Clear();
+
 			SessionInfoYaml = string.Empty;
 			SessionInfo = null;
 
@@ -99,7 +115,7 @@ namespace HerboldRacing
 				FramesDropped += TickCount - lastTickCount - 1;
 			}
 
-			if ( TelemetryDataProperties.Count == 0 )
+			if ( !TelemetryDataPropertiesReady )
 			{
 				var nameArray = new byte[ IRacingSdkDatum.MaxNameLength ];
 				var descArray = new byte[ IRacingSdkDatum.MaxDescLength ];
@@ -119,42 +135,42 @@ namespace HerboldRacing
 
 					#region Fix some iRacing bugs
 
-					name = name switch
+					switch ( name )
 					{
-						"CRSHshockDefl" => "CRshockDefl",
-						"CRSHshockDefl_ST" => "CRshockDefl_ST",
-						"CRSHshockVel" => "CRshockVel",
-						"CRSHshockVel_ST" => "CRshockVel_ST",
-						"LFSHshockDefl" => "LFshockDefl",
-						"LFSHshockDefl_ST" => "LFshockDefl_ST",
-						"LFSHshockVel" => "LFshockVel",
-						"LFSHshockVel_ST" => "LFshockVel_ST",
-						"LRSHshockDefl" => "LRshockDefl",
-						"LRSHshockDefl_ST" => "LRshockDefl_ST",
-						"LRSHshockVel" => "LRshockVel",
-						"LRSHshockVel_ST" => "LRshockVel_ST",
-						"RFSHshockDefl" => "RFshockDefl",
-						"RFSHshockDefl_ST" => "RFshockDefl_ST",
-						"RFSHshockVel" => "RFshockVel",
-						"RFSHshockVel_ST" => "RFshockVel_ST",
-						"RRSHshockDefl" => "RRshockDefl",
-						"RRSHshockDefl_ST" => "RRshockDefl_ST",
-						"RRSHshockVel" => "RRshockVel",
-						"RRSHshockVel_ST" => "RRshockVel_ST",
-						_ => name,
+						case "CRSHshockDefl": name = "CRshockDefl"; break;
+						case "CRSHshockDefl_ST": name = "CRshockDefl_ST"; break;
+						case "CRSHshockVel": name = "CRshockVel"; break;
+						case "CRSHshockVel_ST": name = "CRshockVel_ST"; break;
+						case "LFSHshockDefl": name = "LFshockDefl"; break;
+						case "LFSHshockDefl_ST": name = "LFshockDefl_ST"; break;
+						case "LFSHshockVel": name = "LFshockVel"; break;
+						case "LFSHshockVel_ST": name = "LFshockVel_ST"; break;
+						case "LRSHshockDefl": name = "LRshockDefl"; break;
+						case "LRSHshockDefl_ST": name = "LRshockDefl_ST"; break;
+						case "LRSHshockVel": name = "LRshockVel"; break;
+						case "LRSHshockVel_ST": name = "LRshockVel_ST"; break;
+						case "RFSHshockDefl": name = "RFshockDefl"; break;
+						case "RFSHshockDefl_ST": name = "RFshockDefl_ST"; break;
+						case "RFSHshockVel": name = "RFshockVel"; break;
+						case "RFSHshockVel_ST": name = "RFshockVel_ST"; break;
+						case "RRSHshockDefl": name = "RRshockDefl"; break;
+						case "RRSHshockDefl_ST": name = "RRshockDefl_ST"; break;
+						case "RRSHshockVel": name = "RRshockVel"; break;
+						case "RRSHshockVel_ST": name = "RRshockVel_ST"; break;
 					};
 
-					type = unit switch
+					switch ( unit )
 					{
-						"irsdk_CarLeftRight" => (int) IRacingSdkEnum.VarType.Int,
-						"irsdk_PaceFlags" => (int) IRacingSdkEnum.VarType.BitField,
-						_ => type
+						case "irsdk_CarLeftRight": type = (int) IRacingSdkEnum.VarType.Int; break;
+						case "irsdk_PaceFlags": type = (int) IRacingSdkEnum.VarType.BitField; break;
 					};
 
 					#endregion
 
 					TelemetryDataProperties[ name ] = new IRacingSdkDatum( (IRacingSdkEnum.VarType) type, offset, count, countAsTime, name, desc, unit );
 				}
+
+				TelemetryDataPropertiesReady = true;
 			}
 		}
 
@@ -181,6 +197,8 @@ namespace HerboldRacing
 					if ( sessionInfo != null )
 					{
 						SessionInfo = sessionInfo;
+
+						sessionInfoAsList.Reset();
 
 						return true;
 					}
@@ -440,15 +458,15 @@ namespace HerboldRacing
 
 			var iRacingSdkDatum = TelemetryDataProperties[ name ];
 
-			return iRacingSdkDatum.VarType switch
+			switch ( iRacingSdkDatum.VarType )
 			{
-				IRacingSdkEnum.VarType.Char => memoryMappedViewAccessor.ReadChar( Offset + iRacingSdkDatum.Offset + index ),
-				IRacingSdkEnum.VarType.Bool => memoryMappedViewAccessor.ReadBoolean( Offset + iRacingSdkDatum.Offset + index ),
-				IRacingSdkEnum.VarType.Int => memoryMappedViewAccessor.ReadInt32( Offset + iRacingSdkDatum.Offset + index * 4 ),
-				IRacingSdkEnum.VarType.BitField => memoryMappedViewAccessor.ReadUInt32( Offset + iRacingSdkDatum.Offset + index * 4 ),
-				IRacingSdkEnum.VarType.Float => memoryMappedViewAccessor.ReadSingle( Offset + iRacingSdkDatum.Offset + index * 4 ),
-				IRacingSdkEnum.VarType.Double => memoryMappedViewAccessor.ReadDouble( Offset + iRacingSdkDatum.Offset + index * 4 ),
-				_ => throw new Exception( "Unexpected type!" )
+				case IRacingSdkEnum.VarType.Char: return memoryMappedViewAccessor.ReadChar( Offset + iRacingSdkDatum.Offset + index );
+				case IRacingSdkEnum.VarType.Bool: return memoryMappedViewAccessor.ReadBoolean( Offset + iRacingSdkDatum.Offset + index );
+				case IRacingSdkEnum.VarType.Int: return memoryMappedViewAccessor.ReadInt32( Offset + iRacingSdkDatum.Offset + index * 4 );
+				case IRacingSdkEnum.VarType.BitField: return memoryMappedViewAccessor.ReadUInt32( Offset + iRacingSdkDatum.Offset + index * 4 );
+				case IRacingSdkEnum.VarType.Float: return memoryMappedViewAccessor.ReadSingle( Offset + iRacingSdkDatum.Offset + index * 4 );
+				case IRacingSdkEnum.VarType.Double: return memoryMappedViewAccessor.ReadDouble( Offset + iRacingSdkDatum.Offset + index * 4 );
+				default: throw new Exception( "Unexpected type!" );
 			};
 		}
 
@@ -459,15 +477,15 @@ namespace HerboldRacing
 
 			Validate( datum, index, null );
 
-			return datum.VarType switch
+			switch ( datum.VarType )
 			{
-				IRacingSdkEnum.VarType.Char => memoryMappedViewAccessor.ReadChar( Offset + datum.Offset + index ),
-				IRacingSdkEnum.VarType.Bool => memoryMappedViewAccessor.ReadBoolean( Offset + datum.Offset + index ),
-				IRacingSdkEnum.VarType.Int => memoryMappedViewAccessor.ReadInt32( Offset + datum.Offset + index * 4 ),
-				IRacingSdkEnum.VarType.BitField => memoryMappedViewAccessor.ReadUInt32( Offset + datum.Offset + index * 4 ),
-				IRacingSdkEnum.VarType.Float => memoryMappedViewAccessor.ReadSingle( Offset + datum.Offset + index * 4 ),
-				IRacingSdkEnum.VarType.Double => memoryMappedViewAccessor.ReadDouble( Offset + datum.Offset + index * 4 ),
-				_ => throw new Exception( "Unexpected type!" ),
+				case IRacingSdkEnum.VarType.Char: return memoryMappedViewAccessor.ReadChar( Offset + datum.Offset + index );
+				case IRacingSdkEnum.VarType.Bool: return memoryMappedViewAccessor.ReadBoolean( Offset + datum.Offset + index );
+				case IRacingSdkEnum.VarType.Int: return memoryMappedViewAccessor.ReadInt32( Offset + datum.Offset + index * 4 );
+				case IRacingSdkEnum.VarType.BitField: return memoryMappedViewAccessor.ReadUInt32( Offset + datum.Offset + index * 4 );
+				case IRacingSdkEnum.VarType.Float: return memoryMappedViewAccessor.ReadSingle( Offset + datum.Offset + index * 4 );
+				case IRacingSdkEnum.VarType.Double: return memoryMappedViewAccessor.ReadDouble( Offset + datum.Offset + index * 4 );
+				default: throw new Exception( "Unexpected type!" );
 			};
 		}
 

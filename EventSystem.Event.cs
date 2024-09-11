@@ -1,5 +1,7 @@
 ﻿
-namespace HerboldRacing
+using System;
+
+namespace IRSDKSharper
 {
 	public partial class EventSystem
 	{
@@ -8,9 +10,9 @@ namespace HerboldRacing
 			public int SessionNum { get; private set; }
 			public double SessionTime { get; private set; }
 
-			protected readonly IRacingSdkDatum? datum;
+			protected readonly IRacingSdkDatum datum;
 
-			public Event( int sessionNum, double sessionTime, IRacingSdkDatum? datum )
+			public Event( int sessionNum, double sessionTime, IRacingSdkDatum datum )
 			{
 				SessionNum = sessionNum;
 				SessionTime = sessionTime;
@@ -25,18 +27,20 @@ namespace HerboldRacing
 					return TimeSpan.FromSeconds( (double) (object) SessionTime ).ToString( @"hh\:mm\:ss\.ffff" );
 				}
 			}
+
+			public abstract string ValueAsString { get; }
 		}
 
-		public class Event<T> : Event where T : notnull, IEquatable<T>
+		public class Event<T> : Event
 		{
 			public T Value { get; private set; }
 
-			public Event( int sessionNum, double sessionTime, T value, IRacingSdkDatum? datum ) : base( sessionNum, sessionTime, datum )
+			public Event( int sessionNum, double sessionTime, T value, IRacingSdkDatum datum ) : base( sessionNum, sessionTime, datum )
 			{
 				Value = value;
 			}
 
-			public string ValueAsString
+			public override string ValueAsString
 			{
 				get
 				{
@@ -74,6 +78,10 @@ namespace HerboldRacing
 								valueAsString = EnumAsString<IRacingSdkEnum.PaceMode>();
 								break;
 
+							case "irsdk_TrackWetness":
+								valueAsString = EnumAsString<IRacingSdkEnum.TrackWetness>();
+								break;
+
 							default:
 
 								switch ( datum.VarType )
@@ -84,7 +92,7 @@ namespace HerboldRacing
 										break;
 
 									case IRacingSdkEnum.VarType.Bool:
-										valueAsString = ( (bool) (object) Value ) ? "T" : "F";
+										valueAsString = ( (bool) (object) Value ) ? "True" : "False";
 										break;
 
 									case IRacingSdkEnum.VarType.BitField:

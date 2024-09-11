@@ -13,21 +13,21 @@ irsdkEnableMem=1
 ```
 
 # How to use it
-Here is an example basic project to demonstrate how to set up and use IRSDKSharper.
-IRSDKSharper can be found within the HerboldRacing namespace.
+Here is an example basic project to demonstrate how to set up and use this library.
+The IRacingSdk class can be found within the IRSDKSharper namespace.
 ```cs
-using HerboldRacing;
+using IRSDKSharper;
 
 public partial class MainWindow : Window
 {
-    private IRSDKSharper irsdkSharper;
+    private IRacingSdk irsdk;
 
     public MainWindow()
     {
         InitializeComponent();
 
-        // create an instance of IRSDKSharper
-        irsdk = new IRSDKSharper();
+        // create an instance of IRacingSdk
+        irsdk = new IRacingSdk();
 
         // hook up our event handlers
         irsdk.OnException += OnException;
@@ -36,17 +36,18 @@ public partial class MainWindow : Window
         irsdk.OnSessionInfo += OnSessionInfo;
         irsdk.OnTelemetryData += OnTelemetryData;
         irsdk.OnStopped += OnStopped;
+        irsdk.OnDebugLog += OnDebugLog;
 
         // this means fire the OnTelemetryData event every 30 data frames (2 times a second)
-        irsdkSharper.UpdateInterval = 30; 
+        irsdk.UpdateInterval = 30; 
 
         // lets go!
-        irsdkSharper.Start();
+        irsdk.Start();
     }
 
     private void Window_Closing( object sender, CancelEventArgs e )
     {
-        irsdkSharper.Stop();
+        irsdk.Stop();
     }
 
     private void OnException( Exception exception )
@@ -66,14 +67,14 @@ public partial class MainWindow : Window
 
     private void OnSessionInfo()
     {
-        var trackName = irsdkSharper.Data.SessionInfo.WeekendInfo.TrackName;
+        var trackName = irsdk.Data.SessionInfo.WeekendInfo.TrackName;
 
         Debug.WriteLine( $"OnSessionInfo fired! Track name is {trackName}." );
     }
 
     private void OnTelemetryData()
     {
-        var lapDistPct = irsdkSharper.Data.GetFloat( "CarIdxLapDistPct", 5 );
+        var lapDistPct = irsdk.Data.GetFloat( "CarIdxLapDistPct", 5 );
 
         Debug.WriteLine( $"OnTelemetryData fired! Lap dist pct for the 6th car in the array is {lapDistPct}." );
     }
@@ -82,28 +83,33 @@ public partial class MainWindow : Window
     {
         Debug.WriteLine( "OnStopped() fired!" );
     }
+
+    private void OnDebugLog( string message )
+    {
+        Debug.WriteLine( message )
+    }
 ```
 
 # IRSDKSharper Class
 
 ## Methods
 
-### IRSDKSharper( bool throwYamlExceptions = false )
-When you create a new instance of IRSDKSharper you can pass in true to turn on the throwing of exceptions whenever the YAML parser detects that the IRacingSdkSessionInfo is missing some properties.
+### IRacingSdk( bool throwYamlExceptions = false )
+When you create a new instance of IRacingSdk you can pass in true to turn on the throwing of exceptions whenever the YAML parser detects that the IRacingSdkSessionInfo is missing some properties.
 This would normally be left off in your projects.
 This is really just a way for me to quickly figure out what is missing as iRacing is continually adding new session information properties.
 
 ### void Start()
-IRSDKSharper will create a new connection loop background task.
+IRacingSdk will create a new connection loop background task.
 This connection loop will wait for the iRacing simulator to load and start broadcasting telemetry data.
-Once telemetry data starts pouring in, IRSDKSharper will terminate the connection loop background task, and create two new background tasks<sup>1</sup>.
+Once telemetry data starts pouring in, IRacingSdk will terminate the connection loop background task, and create two new background tasks<sup>1</sup>.
 The first new background task handles session information updates, and the second new background task handles telemetry data updates<sup>2</sup>.
 
 ### void Stop()
-IRSDKSharper will terminate all background tasks and clean up everything.
+IRacingSdk will terminate all background tasks and clean up everything.
 This is done asynchronously, and it is safe to call `Stop()` from within any of your event handlers.
-The `IsStarted` property will become false and the `OnStopped` event will be fired when IRSDKSharper has completely stopped.
-Please call `Stop()` before setting your IRSDKSharper object to null to terminate all of the background tasks.
+The `IsStarted` property will become false and the `OnStopped` event will be fired when IRacingSdk has completely stopped.
+Please call `Stop()` before setting your IRacingSdk object to null to terminate all of the background tasks.
 
 ### Simulator Remote Control
 There are several functions you can use to remotely control the iRacing simulator.
@@ -139,7 +145,7 @@ Values above 1 means means you want to discard data frames to reduce how often t
 For example, setting this to 2 means to fire the event every second data frame.
 
 ### public bool IsStarted { get; private set; }
-This property indicates whether or not this instance of IRSDKSharper is in the started state or is in the stopped state.
+This property indicates whether or not this instance of IRacingSdk is in the started state or is in the stopped state.
 
 ### public bool IsConnected { get; private set; }
 This property indicates whether or not the iRacing simulator is running and broadcasting data frames.
@@ -148,31 +154,36 @@ This property indicates whether or not the iRacing simulator is running and broa
 Exceptions caught within any of the three background tasks will be passed into `OnException`.
 You will likely want to copy the exception information somewhere and handle it from within your main thread.
 At this point, the background task that fired the exception will terminate.
-You can call `Stop` then `Start` to clean up and restart IRSDKSharper.
+You can call `Stop` then `Start` to clean up and restart IRacingSdk.
 
 ### public event Action? OnConnected
-The `OnConnected` event is fired when IRSDKSharper has detected that the iRacing simulator has started up and is broadcasting telemetry data.
+The `OnConnected` event is fired when IRacingSdk has detected that the iRacing simulator has started up and is broadcasting telemetry data.
 
 ### public event Action? OnDisconnected
-The `OnDisconnected` event is fired when IRSDKSharper has detected that the iRacing simulator has exited.
-IRSDKSharper will start waiting for the iRacing simulator to come back and start broadcasting telemetry data again.
+The `OnDisconnected` event is fired when IRacingSdk has detected that the iRacing simulator has exited.
+IRacingSdk will start waiting for the iRacing simulator to come back and start broadcasting telemetry data again.
 If and when it does, the `OnConnected` event will be fired again at that time.
 
 ### public event Action? OnSessionInfo
-The `OnSessionInfo` event is fired after IRSDKSharper has received and fully processed the YAML session information data from the iRacing simulator.
-IRSDKSharper will not process any more frames of data until your event handler completes.
+The `OnSessionInfo` event is fired after IRacingSdk has received and fully processed the YAML session information data from the iRacing simulator.
+IRacingSdk will not process any more frames of data until your event handler completes.
 For this reason, it is important that you do things quickly in your event handler in order to avoid dropping frames of data.
 
 ### public event Action? OnTelemetryData
 The `OnTelemetryData` event is fired whenever we receive a new frame of telemetry data from the iRacing simulator.
-IRSDKSharper will not process any more frames of data until your event handler completes.
+IRacingSdk will not process any more frames of data until your event handler completes.
 For this reason, it is important that you do things quickly in your event handler in order to avoid dropping frames of data.
 
 ### public event Action? OnStopped
-The `OnStopped` event is fired when IRSDKSharper has fully stopped.
+The `OnStopped` event is fired when IRacingSdk has fully stopped.
+
+### public event Action? OnDebugLog
+The `OnDebugLog` event is fired when IRacingSdk wants to give you a debug message.
+You can do whatever you want with this message, such as send it to Debug.WriteLine (or Debug.Log in Unity!), or write it to file, or just discard it.
+This event does not fire in release builds.
 
 # IRacingSdkData Class
-All iRacing simulator data can be accessed through the `IRSDKSharper.Data` property.
+All iRacing simulator data can be accessed through the `IRacingSdk.Data` property.
 
 ## Properties
 
@@ -265,10 +276,10 @@ int GetDoubleArray( IRacingSdkDatum datum, double[] array, int index, int count 
 To use these you could do something like:
 ```cs
 // you would do this once and save it somewhere
-var carIdxLapDistPctDatum = irsdkSharper.Data.TelemetryDataProperties[ "CarIdxLapDistPct" ];
+var carIdxLapDistPctDatum = irsdk.Data.TelemetryDataProperties[ "CarIdxLapDistPct" ];
 
 // and then now you can repeatedly call this for the most blisteringly fastest speed possible
-var lapDistPct = irsdkSharper.Data.GetFloat( carIdxLapDistPctDatum, 5 );
+var lapDistPct = irsdk.Data.GetFloat( carIdxLapDistPctDatum, 5 );
 ```
 
 # Event system (experimental)
@@ -302,7 +313,7 @@ T Value
 Where T is the data type of the event (int, float, etc.)
 
 ## Initializing
-Call irsdkSharper.EnableEventSystem( directory ) at some point before calling irsdkSharper.Start().
+Call irsdk.EnableEventSystem( directory ) at some point before calling irsdkSharper.Start().
 The directory parameter is where you want the event system to create its files in.
 
 Hook up some callbacks 
@@ -324,11 +335,35 @@ var gForceTrack = irsdk.EventSystem.Tracks[ "CarIdxGForce[3]" ]
 ```
 Using this information you can very easily tell exactly when a car experienced a collision of some sort.
 
-# Useful tips
+# Example projects
+There are several projects that I have written, of varying complexity, that uses this library.
+They are all on GitHub and you can refer to these to understand better how to use this stuff.
 
-# Test project
-There is a test project that I have created that demonstrates the use of IRSDKSharper. This test project displays every telemetry and session information data in real time. The test project can be found over here:
+## IRSDKSharperTest
+
 https://github.com/mherbold/IRSDKSharperTest
+
+This is a basic no-frills WPF app that creates a window, connects to the iRacing simulator, and displays the header, telemetry data, and session info in real time.
+
+## iRacingStages
+
+https://github.com/mherbold/IRSDKSharperTest
+
+This is another basic WPF app that creates a window, connects to the iRacing simulator, and throws the yellow flag on specified laps.
+
+## IRWindSim
+
+https://github.com/mherbold/IRSDKSharperTest
+
+This is another basic WPF app that creates a window, and controls my SRS "Hurricane" Power Wind Kit using a custom Arduino setup I have created.
+
+## IRacing-TV 2
+
+https://github.com/mherbold/IRSDKSharperTest
+
+This is a monster Unity based app that is a work in progress.
+This is the next iteration of my iRacing-TV app, which was originally based on IRSDKSharp.
+This app uses all of the features of IRSDKSharper, and would serve as the most comprehensive example.
 
 # Differences to IRSDKSharp
 1. The connection loop is never terminated in IRSDKSharp even though it is not needed any more after the iRacing simulator starts up.

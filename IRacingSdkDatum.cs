@@ -1,5 +1,5 @@
 ﻿
-namespace HerboldRacing
+namespace IRSDKSharper
 {
 	public class IRacingSdkDatum
 	{

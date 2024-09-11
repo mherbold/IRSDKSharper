@@ -1,9 +1,8 @@
 ﻿
-using System.Diagnostics;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace HerboldRacing
+namespace IRSDKSharper
 {
 	public partial class EventSystem
 	{
@@ -21,13 +20,13 @@ namespace HerboldRacing
 
 		private readonly float[][] lastCarIdxLapDistPct = new float[ IRacingSdkConst.MaxNumCars ][];
 
-		private EventTrack[] carIdxGForceEventTrack = new EventTrack[ IRacingSdkConst.MaxNumCars ];
+		private readonly EventTrack[] carIdxGForceEventTrack = new EventTrack[ IRacingSdkConst.MaxNumCars ];
 
 		private void ResetCalculatedTracks()
 		{
-			Debug.WriteLine( "EventSystem - ResetCalculatedTracks()" );
+			irsdkSharper.Log( "EventSystem - ResetCalculatedTracks()" );
 
-			carIdxLapDistPctDatum = new();
+			carIdxLapDistPctDatum = new IRacingSdkDatum();
 
 			trackLengthInMeters = 0.0f;
 
@@ -39,7 +38,7 @@ namespace HerboldRacing
 
 		private void InitializeCalculatedTracks( IRacingSdkData data )
 		{
-			Debug.WriteLine( "EventSystem - InitializeCalculatedTracks()" );
+			irsdkSharper.Log( "EventSystem - InitializeCalculatedTracks()" );
 
 			if ( data.SessionInfo is IRacingSdkSessionInfo sessionInfo )
 			{
