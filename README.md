@@ -12,6 +12,12 @@ This setting can be found in the iRacing Simulator app.ini file.
 irsdkEnableMem=1
 ```
 
+# Notes
+When migrating to version 1.1.0 from a previous version, there are two changes you need to make -
+* The namespace was changed from HerboldRacing to IRSDKSharper
+* The IRSDKSharper class name was changed to IRacingSdk
+* That's it - everything else should work as it did before
+
 # How to use it
 Here is an example basic project to demonstrate how to set up and use this library.
 The IRacingSdk class can be found within the IRSDKSharper namespace.
@@ -347,19 +353,19 @@ This is a basic no-frills WPF app that creates a window, connects to the iRacing
 
 ## iRacingStages
 
-https://github.com/mherbold/IRSDKSharperTest
+https://github.com/mherbold/iRacingStages
 
 This is another basic WPF app that creates a window, connects to the iRacing simulator, and throws the yellow flag on specified laps.
 
 ## IRWindSim
 
-https://github.com/mherbold/IRSDKSharperTest
+https://github.com/mherbold/IRWindSim
 
 This is another basic WPF app that creates a window, and controls my SRS "Hurricane" Power Wind Kit using a custom Arduino setup I have created.
 
-## IRacing-TV 2
+## iRacing-TV 2
 
-https://github.com/mherbold/IRSDKSharperTest
+https://github.com/mherbold/IRacing-TV-2
 
 This is a monster Unity based app that is a work in progress.
 This is the next iteration of my iRacing-TV app, which was originally based on IRSDKSharp.
