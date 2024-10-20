@@ -13,9 +13,9 @@ namespace IRSDKSharper
 {
 	public class IRacingSdk
 	{
-		private const string MapName = "Local\\IRSDKMemMapFileName";
-		private const string EventName = "Local\\IRSDKDataValidEvent";
-		private const string BroadcastMessageName = "IRSDK_BROADCASTMSG";
+		private const string SimulatorMemoryMappedFileName = "Local\\IRSDKMemMapFileName";
+		private const string SimulatorDataValidEventName = "Local\\IRSDKDataValidEvent";
+		private const string SimulatorBroadcastMessageName = "IRSDK_BROADCASTMSG";
 
 		public readonly IRacingSdkData Data;
 
@@ -42,8 +42,8 @@ namespace IRSDKSharper
 		private bool telemetryDataLoopRunning = false;
 		private bool sessionInfoLoopRunning = false;
 
-		private MemoryMappedFile memoryMappedFile = null;
-		private MemoryMappedViewAccessor memoryMappedViewAccessor = null;
+		private MemoryMappedFile simulatorMemoryMappedFile = null;
+		private MemoryMappedViewAccessor simulatorMemoryMappedFileViewAccessor = null;
 
 		private AutoResetEvent simulatorAutoResetEvent = null;
 		private AutoResetEvent sessionInfoAutoResetEvent = null;
@@ -53,7 +53,7 @@ namespace IRSDKSharper
 		private int lastSessionInfoUpdate = 0;
 		private int sessionInfoUpdateReady = 0;
 
-		private readonly uint broadcastWindowMessage = WinApi.RegisterWindowMessage( BroadcastMessageName );
+		private readonly uint simulatorBroadcastWindowMessage = WinApi.RegisterWindowMessage( SimulatorBroadcastMessageName );
 
 		/// <summary>
 		/// <para>Welcome to IRSDKSharper!</para>
@@ -146,8 +146,8 @@ namespace IRSDKSharper
 					IsStarted = false;
 					IsConnected = false;
 
-					memoryMappedFile = null;
-					memoryMappedViewAccessor = null;
+					simulatorMemoryMappedFile = null;
+					simulatorMemoryMappedFileViewAccessor = null;
 
 					simulatorAutoResetEvent = null;
 					sessionInfoAutoResetEvent = null;
@@ -272,7 +272,7 @@ namespace IRSDKSharper
 
 		private void BroadcastMessage( IRacingSdkEnum.BroadcastMsg msg, short var1, int var2 = 0 )
 		{
-			if ( !WinApi.PostMessage( (IntPtr) 0xFFFF, broadcastWindowMessage, WinApi.MakeLong( (short) msg, var1 ), (IntPtr) var2 ) )
+			if ( !WinApi.PostMessage( (IntPtr) 0xFFFF, simulatorBroadcastWindowMessage, WinApi.MakeLong( (short) msg, var1 ), (IntPtr) var2 ) )
 			{
 				var errorCode = Marshal.GetLastWin32Error();
 
@@ -282,7 +282,7 @@ namespace IRSDKSharper
 
 		private void BroadcastMessage( IRacingSdkEnum.BroadcastMsg msg, short var1, float var2 )
 		{
-			if ( !WinApi.PostMessage( (IntPtr) 0xFFFF, broadcastWindowMessage, WinApi.MakeLong( (short) msg, var1 ), (IntPtr) ( var2 * 65536.0f ) ) )
+			if ( !WinApi.PostMessage( (IntPtr) 0xFFFF, simulatorBroadcastWindowMessage, WinApi.MakeLong( (short) msg, var1 ), (IntPtr) ( var2 * 65536.0f ) ) )
 			{
 				var errorCode = Marshal.GetLastWin32Error();
 
@@ -292,7 +292,7 @@ namespace IRSDKSharper
 
 		private void BroadcastMessage( IRacingSdkEnum.BroadcastMsg msg, short var1, short var2, short var3 )
 		{
-			if ( !WinApi.PostMessage( (IntPtr) 0xFFFF, broadcastWindowMessage, WinApi.MakeLong( (short) msg, var1 ), WinApi.MakeLong( var2, var3 ) ) )
+			if ( !WinApi.PostMessage( (IntPtr) 0xFFFF, simulatorBroadcastWindowMessage, WinApi.MakeLong( (short) msg, var1 ), WinApi.MakeLong( var2, var3 ) ) )
 			{
 				var errorCode = Marshal.GetLastWin32Error();
 
@@ -314,57 +314,70 @@ namespace IRSDKSharper
 
 				while ( keepThreadsAlive == 1 )
 				{
-					if ( memoryMappedFile == null )
+					if ( simulatorMemoryMappedFile == null )
 					{
 						try
 						{
-							memoryMappedFile = MemoryMappedFile.OpenExisting( MapName );
+							simulatorMemoryMappedFile = MemoryMappedFile.OpenExisting( SimulatorMemoryMappedFileName );
 						}
 						catch ( FileNotFoundException )
 						{
 						}
 					}
 
-					if ( memoryMappedFile != null )
+					if ( simulatorMemoryMappedFile != null )
 					{
-						Log( "memoryMappedFile != null" );
+						Log( "simulatorMemoryMappedFile != null" );
 
-						memoryMappedViewAccessor = memoryMappedFile.CreateViewAccessor();
-
-						if ( memoryMappedViewAccessor == null )
+						if ( simulatorMemoryMappedFileViewAccessor == null )
 						{
-							throw new Exception( "Failed to create memory mapped view accessor." );
+							simulatorMemoryMappedFileViewAccessor = simulatorMemoryMappedFile.CreateViewAccessor();
+
+							if ( simulatorMemoryMappedFileViewAccessor == null )
+							{
+								throw new Exception( "Failed to create memory mapped view accessor." );
+							}
+							else
+							{
+								Data.SetMemoryMappedViewAccessor( simulatorMemoryMappedFileViewAccessor );
+							}
 						}
+					}
 
-						Data.SetMemoryMappedViewAccessor( memoryMappedViewAccessor );
+					if ( simulatorMemoryMappedFileViewAccessor != null )
+					{
+						Log( "simulatorMemoryMappedFileViewAccessor != null" );
 
-						var hEvent = WinApi.OpenEvent( WinApi.EVENT_ALL_ACCESS, false, EventName );
+						var simulatorDataValidEventHandle = WinApi.OpenEvent( WinApi.EVENT_ALL_ACCESS, false, SimulatorDataValidEventName );
 
-						if ( hEvent == (IntPtr) null )
+						if ( simulatorDataValidEventHandle == (IntPtr) null )
 						{
 							var errorCode = Marshal.GetLastWin32Error();
 
-							Marshal.ThrowExceptionForHR( errorCode, IntPtr.Zero );
+							if ( errorCode != WinApi.ERROR_FILE_NOT_FOUND )
+							{
+								Marshal.ThrowExceptionForHR( errorCode, IntPtr.Zero );
+							}
 						}
 						else
 						{
+							Log( "hSimulatorDataValidEvent != null" );
+
 							simulatorAutoResetEvent = new AutoResetEvent( false )
 							{
-								SafeWaitHandle = new SafeWaitHandle( hEvent, true )
+								SafeWaitHandle = new SafeWaitHandle( simulatorDataValidEventHandle, true )
 							};
 
 							sessionInfoAutoResetEvent = new AutoResetEvent( false );
 
 							Task.Run( SessionInfoLoop );
 							Task.Run( TelemetryDataLoop );
-						}
 
-						break;
+							break;
+						}
 					}
-					else
-					{
-						Thread.Sleep( 2000 );
-					}
+
+					Thread.Sleep( 2000 );
 				}
 
 				connectionLoopRunning = false;

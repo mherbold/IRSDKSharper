@@ -7,11 +7,11 @@ namespace IRSDKSharper
 {
 	internal class WinApi
 	{
-		public const uint STANDARD_RIGHTS_REQUIRED = 0x000F0000;
-		public const uint SYNCHRONIZE = 0x00100000;
-		public const uint EVENT_ALL_ACCESS = ( STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3 );
+		public const int ERROR_FILE_NOT_FOUND = 2;
 
-		[DllImport( "Kernel32.dll", SetLastError = true )]
+		public const uint EVENT_ALL_ACCESS = 0x1F0003;
+
+		[ DllImport( "Kernel32.dll", SetLastError = true )]
 		public static extern IntPtr OpenEvent( uint dwDesiredAccess, bool bInheritHandle, string lpName );
 
 		[DllImport( "user32.dll", SetLastError = true, CharSet = CharSet.Auto )]
