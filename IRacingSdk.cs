@@ -377,7 +377,7 @@ namespace IRSDKSharper
 						}
 					}
 
-					Thread.Sleep( 2000 );
+					Thread.Sleep( 500 );
 				}
 
 				connectionLoopRunning = false;
