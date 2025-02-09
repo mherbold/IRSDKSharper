@@ -24,6 +24,26 @@ namespace IRSDKSharper
 
 		public int UpdateInterval { get; set; } = 1;
 
+		public bool PauseSessionInfoUpdates
+		{
+			get => pauseSessionInfoUpdates;
+
+			set
+			{
+				if ( pauseSessionInfoUpdates != value )
+				{
+					Log( $"PauseSessionInfoUpdates = {value}" );
+
+					pauseSessionInfoUpdates = value;
+
+					if ( pauseSessionInfoUpdates != false )
+					{
+						lastSessionInfoUpdate = 0;
+					}
+				}
+			}
+		}
+
 		public EventSystem EventSystem { get; private set; }
 
 		public event Action<Exception> OnException = null;
@@ -52,6 +72,7 @@ namespace IRSDKSharper
 
 		private int lastSessionInfoUpdate = 0;
 		private int sessionInfoUpdateReady = 0;
+		private bool pauseSessionInfoUpdates = false;
 
 		private readonly uint simulatorBroadcastWindowMessage = WinApi.RegisterWindowMessage( SimulatorBroadcastMessageName );
 
@@ -72,11 +93,14 @@ namespace IRSDKSharper
 		/// </code>
 		/// </summary>
 		/// <param name="throwYamlExceptions">Set this to true to throw exceptions when our IRacingSdkSessionInfo class is missing properties that exist in the YAML data string.</param>
-		public IRacingSdk( bool throwYamlExceptions = false )
+		public IRacingSdk( bool throwYamlExceptions = false, bool enableEventSystem = false )
 		{
 			Data = new IRacingSdkData( throwYamlExceptions );
 
-			EventSystem = new EventSystem( this );
+			if ( enableEventSystem )
+			{
+				EventSystem = new EventSystem( this );
+			}
 		}
 
 		public void Start()
@@ -89,7 +113,14 @@ namespace IRSDKSharper
 			{
 				Log( "IRSDKSharper is starting." );
 
-				Task.Run( ConnectionLoop );
+				var thread = new Thread( ConnectionLoop );
+
+				thread.Start();
+
+				while ( !connectionLoopRunning )
+				{
+					Thread.Sleep( 0 );
+				}
 
 				IsStarted = true;
 
@@ -157,7 +188,7 @@ namespace IRSDKSharper
 					lastSessionInfoUpdate = 0;
 					sessionInfoUpdateReady = 0;
 
-					EventSystem.Reset();
+					EventSystem?.Reset();
 
 					Log( "IRSDKSharper has been stopped." );
 
@@ -169,9 +200,9 @@ namespace IRSDKSharper
 		/// <summary>
 		/// This event system feature is currently experimental.
 		/// </summary>
-		public void EnableEventSystem( string directory )
+		public void SetEventSystemDirectory( string directory )
 		{
-			EventSystem.SetDirectory( directory ?? string.Empty );
+			EventSystem?.SetDirectory( directory ?? string.Empty );
 		}
 
 		public void FireOnEventSystemDataReset()
@@ -370,8 +401,23 @@ namespace IRSDKSharper
 
 							sessionInfoAutoResetEvent = new AutoResetEvent( false );
 
-							Task.Run( SessionInfoLoop );
-							Task.Run( TelemetryDataLoop );
+							var thread = new Thread( SessionInfoLoop );
+
+							thread.Start();
+
+							while ( !sessionInfoLoopRunning )
+							{
+								Thread.Sleep( 0 );
+							}
+
+							thread = new Thread( TelemetryDataLoop );
+
+							thread.Start();
+
+							while ( !telemetryDataLoopRunning )
+							{
+								Thread.Sleep( 0 );
+							}
 
 							break;
 						}
@@ -443,7 +489,7 @@ namespace IRSDKSharper
 
 				while ( keepThreadsAlive == 1 )
 				{
-					var signalReceived = simulatorAutoResetEvent?.WaitOne( 250 ) ?? false;
+					var signalReceived = simulatorAutoResetEvent?.WaitOne( 1000 ) ?? false;
 
 					if ( signalReceived )
 					{
@@ -471,10 +517,13 @@ namespace IRSDKSharper
 
 							Data.retryUpdateSessionInfoAfterTickCount = int.MaxValue;
 
-							sessionInfoAutoResetEvent?.Set();
+							if ( !pauseSessionInfoUpdates )
+							{
+								sessionInfoAutoResetEvent?.Set();
+							}
 						}
 
-						EventSystem.Update( Data );
+						EventSystem?.Update( Data );
 
 						if ( Interlocked.Exchange( ref sessionInfoUpdateReady, 0 ) == 1 )
 						{
@@ -504,7 +553,7 @@ namespace IRSDKSharper
 
 							Data.Reset();
 
-							EventSystem.Reset();
+							EventSystem?.Reset();
 						}
 					}
 				}
