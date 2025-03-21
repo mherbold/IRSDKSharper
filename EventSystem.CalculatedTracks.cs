@@ -4,6 +4,14 @@ using System.Text.RegularExpressions;
 
 namespace IRSDKSharper
 {
+	/// <summary>
+	/// Provides functionality to manage and record events for telemetry and data tracking in the IRacing SDK system.
+	/// </summary>
+	/// <remarks>
+	/// The EventSystem class is a central component of the IRSDKSharper namespace used for tracking changes in telemetry data.
+	/// It provides mechanisms to record events and associate them with specific data streams.
+	/// This class is implemented as partial and includes additional nested and derived types for extensibility.
+	/// </remarks>
 	public partial class EventSystem
 	{
 		public float MinimumGForce { get; set; } = 2.0f; // in g's
@@ -22,6 +30,13 @@ namespace IRSDKSharper
 
 		private readonly EventTrack[] carIdxGForceEventTrack = new EventTrack[ IRacingSdkConst.MaxNumCars ];
 
+		/// <summary>
+		/// Resets all calculated track-related data within the EventSystem.
+		/// This includes reinitializing the internal data structures and variables
+		/// responsible for maintaining track information, session details, and
+		/// lap distance data. Designed to be used for resetting the state
+		/// of track-related computations in preparation for a new session or race.
+		/// </summary>
 		private void ResetCalculatedTracks()
 		{
 			irsdkSharper.Log( "EventSystem - ResetCalculatedTracks()" );
@@ -36,6 +51,10 @@ namespace IRSDKSharper
 			lastSessionTick[ 1 ] = -1;
 		}
 
+		/// <summary>
+		/// Initializes the calculated tracks by processing session information and telemetry data.
+		/// </summary>
+		/// <param name="data">An instance of IRacingSdkData containing telemetry and session information used to initialize calculated tracks.</param>
 		private void InitializeCalculatedTracks( IRacingSdkData data )
 		{
 			irsdkSharper.Log( "EventSystem - InitializeCalculatedTracks()" );
@@ -66,6 +85,10 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Records the calculated tracks and updates telemetry data for cars during a session.
+		/// </summary>
+		/// <param name="data">The telemetry data object containing current session and track data.</param>
 		private void RecordCalculatedTracks( IRacingSdkData data )
 		{
 			if ( sessionNum != lastSessionNum )

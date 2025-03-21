@@ -6,6 +6,10 @@ using System.IO;
 
 namespace IRSDKSharper
 {
+	/// <summary>
+	/// The EventSystem class manages the event tracking, processing and directory structure
+	/// for the telemetry data in the IRacing simulation environment.
+	/// </summary>
 	public partial class EventSystem
 	{
 		public Dictionary<string, EventTrack> Tracks { get; private set; } = new Dictionary<string, EventTrack>();
@@ -131,6 +135,11 @@ namespace IRSDKSharper
 			this.irsdkSharper = irsdkSharper;
 		}
 
+		/// <summary>
+		/// Sets the directory path for the EventSystem object and creates the directory if it doesn't already exist.
+		/// Resets the EventSystem after setting the directory.
+		/// </summary>
+		/// <param name="directory">The directory path to set for the EventSystem.</param>
 		public void SetDirectory( string directory )
 		{
 			irsdkSharper.Log( $"EventSystem - SetDirectory( {directory} )" );
@@ -145,6 +154,11 @@ namespace IRSDKSharper
 			Reset();
 		}
 
+		/// <summary>
+		/// Resets the internal state of the EventSystem to its default state.
+		/// This includes clearing all event tracks, resetting session-related data,
+		/// disposing of any active binary writer, and resetting calculated tracks.
+		/// </summary>
 		public void Reset()
 		{
 			irsdkSharper.Log( "EventSystem - Reset()" );
@@ -174,6 +188,10 @@ namespace IRSDKSharper
 			ResetCalculatedTracks();
 		}
 
+		/// <summary>
+		/// Updates the event system state with the given telemetry data from the iRacing SDK.
+		/// </summary>
+		/// <param name="data">The telemetry data provided by the iRacing SDK, containing session and telemetry information to be processed.</param>
 		public void Update( IRacingSdkData data )
 		{
 			if ( data.SessionInfo is IRacingSdkSessionInfo sessionInfo )
@@ -226,6 +244,12 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// Retrieves the unique track name ID associated with the given track name and variable type.
+		/// If the track name does not already exist in the dictionary, a new ID is generated, mapped,
+		/// and recorded in the binary writer.
+		/// <param name="trackName">The name of the track for which the ID is requested.</param>
+		/// <param name="varType">The data type of the variable associated with the track.</param>
+		/// <returns>A short value representing the unique ID of the specified track name.</returns>
 		public short GetTrackNameId( string trackName, IRacingSdkEnum.VarType varType )
 		{
 			if ( trackNameDictionary.ContainsKey( trackName ) )
@@ -249,6 +273,10 @@ namespace IRSDKSharper
 			return trackNameId;
 		}
 
+		/// Initializes the telemetry data tracks and prepares the event system for processing data.
+		/// <param name="data">
+		/// An instance of IRacingSdkData containing the telemetry data properties to initialize the tracks.
+		/// </param>
 		private void Initialize( IRacingSdkData data )
 		{
 			irsdkSharper.Log( "EventSystem - Initialize()" );
@@ -284,6 +312,10 @@ namespace IRSDKSharper
 			InitializeCalculatedTracks( data );
 		}
 
+		/// <summary>
+		/// Loads event data from a specified binary file and updates the internal event system accordingly.
+		/// </summary>
+		/// <param name="filePath">The path of the binary file containing the event data to read and process.</param>
 		private void LoadEvents( string filePath )
 		{
 			irsdkSharper.Log( $"EventSystem - LoadEvents( {filePath} )" );
@@ -357,6 +389,8 @@ namespace IRSDKSharper
 			irsdkSharper.FireOnEventSystemDataLoaded();
 		}
 
+		/// Records telemetry data changes by delegating the processing of data to individual tracks.
+		/// <param name="data">The telemetry data received and processed from the iRacing SDK.</param>
 		private void RecordTelemetryDataChanges( IRacingSdkData data )
 		{
 			foreach ( var keyValuePair in Tracks )
@@ -365,6 +399,12 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Records changes in session information by creating or updating event tracks based on the provided session information data.
+		/// This method works recursively to capture property changes in complex objects or collections.
+		/// </summary>
+		/// <param name="trackName">The name of the track or property being recorded.</param>
+		/// <param name="valueAsObject">The current value of the session information property to be evaluated and recorded.</param>
 		private void RecordSessionInfoChanges( string trackName, object valueAsObject )
 		{
 			if ( valueAsObject != null )
@@ -398,6 +438,16 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Ensures that the frame header is recorded once per session frame.
+		/// Writes the session number and session time to the binary writer if the header
+		/// has not already been recorded.
+		/// </summary>
+		/// <remarks>
+		/// This method uses a flag to avoid duplicating the frame header for multiple recordings.
+		/// The values written include a short value of 0 for framing purposes, the session number,
+		/// and the session time. Uses a binary writer to handle the writing operations.
+		/// </remarks>
 		private void RecordFrameHeader()
 		{
 			if ( !frameHeaderRecorded )
@@ -412,6 +462,13 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Creates or retrieves an existing event track associated with the provided track name and initializes it with the given value object.
+		/// </summary>
+		/// <param name="trackName">The name of the track to create or retrieve.</param>
+		/// <param name="valueAsObject">The initial value to determine the type of the event track and initialize it.</param>
+		/// <returns>An instance of <see cref="EventTrack"/> corresponding to the provided track name.</returns>
+		/// <exception cref="Exception">Thrown if the type of <paramref name="valueAsObject"/> is unsupported.</exception>
 		private EventTrack CreateEventTrack( string trackName, object valueAsObject )
 		{
 			if ( !Tracks.ContainsKey( trackName ) )

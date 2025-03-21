@@ -4,6 +4,14 @@ using System.Collections;
 
 namespace IRSDKSharper
 {
+	/// <summary>
+	/// A read-only list implementation that provides access to header data from the iRacing SDK.
+	/// </summary>
+	/// <remarks>
+	/// This class implements the <see cref="IList"/> interface to structure iRacing SDK header
+	/// data as an indexed collection. It is specifically designed to provide a read-only interface
+	/// to header information returned by the SDK.
+	/// </remarks>
 	public class IRacingSdkHeaderDataAsList : IList
 	{
 		private readonly IRacingSdkData data;
