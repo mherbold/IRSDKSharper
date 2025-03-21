@@ -70,11 +70,24 @@ namespace IRSDKSharper
 			deserializer = deserializerBuilder.Build();
 		}
 
+		/// <summary>
+		/// Sets the MemoryMappedViewAccessor instance to be used for accessing shared memory data.
+		/// </summary>
+		/// <param name="memoryMappedViewAccessor">
+		/// An instance of <see cref="MemoryMappedViewAccessor"/> that facilitates reading and writing to a shared memory region.
+		/// </param>
 		public void SetMemoryMappedViewAccessor( MemoryMappedViewAccessor memoryMappedViewAccessor )
 		{
 			this.memoryMappedViewAccessor = memoryMappedViewAccessor;
 		}
 
+		/// <summary>
+		/// Resets the internal state of the IRacingSdkData instance.
+		/// </summary>
+		/// <remarks>
+		/// This method clears telemetry data properties, resets the session information, and initializes various state-related fields
+		/// for subsequent use. It is typically used to prepare the instance for a new session or to clear data when no longer needed.
+		/// </remarks>
 		public void Reset()
 		{
 			TelemetryDataPropertiesReady = false;
@@ -90,6 +103,18 @@ namespace IRSDKSharper
 			retryUpdateSessionInfoAfterTickCount = int.MaxValue;
 		}
 
+		/// <summary>
+		/// Updates the internal state of the IRacingSdkData instance by processing the shared memory buffer.
+		/// </summary>
+		/// <remarks>
+		/// This method retrieves and evaluates the most recent telemetry data from the memory-mapped view accessor.
+		/// It determines the latest tick count and calculates any missed frames based on discrepancies between ticks.
+		/// Additionally, it initializes telemetry data properties on the first invocation by scanning variable definitions
+		/// in the shared memory.
+		/// </remarks>
+		/// <exception cref="System.Diagnostics.DebugAssertException">
+		/// Thrown if the memoryMappedViewAccessor field is null, as this method requires a non-null accessor to function correctly.
+		/// </exception>
 		public void Update()
 		{
 			Debug.Assert( memoryMappedViewAccessor != null );
@@ -174,6 +199,12 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Updates the session information by reading the corresponding data from the shared memory.
+		/// </summary>
+		/// <returns>
+		/// A boolean value indicating whether the session information was successfully updated.
+		/// </returns>
 		public bool UpdateSessionInfo()
 		{
 			Debug.Assert( memoryMappedViewAccessor != null );
