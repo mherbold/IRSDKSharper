@@ -1,6 +1,10 @@
 ﻿
 namespace IRSDKSharper
 {
+	/// <summary>
+	/// Represents a data descriptor for telemetry data provided by the iRacing SDK.
+	/// Stores metadata about the telemetry variable, including type, offset, count, and descriptions.
+	/// </summary>
 	public class IRacingSdkDatum
 	{
 		public const int MaxNameLength = 32;

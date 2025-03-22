@@ -11,6 +11,10 @@ using YamlDotNet.Serialization;
 
 namespace IRSDKSharper
 {
+	/// <summary>
+	/// Represents the primary data access object for interacting with the iRacing SDK's telemetry and session data.
+	/// Provides methods and properties to retrieve telemetry data, session information, and other key details from the shared memory interface.
+	/// </summary>
 	public class IRacingSdkData
 	{
 		public bool TelemetryDataPropertiesReady { get; private set; } = false;
@@ -45,7 +49,7 @@ namespace IRSDKSharper
 		private readonly IDeserializer deserializer;
 
 		private MemoryMappedViewAccessor memoryMappedViewAccessor = null;
-
+		
 		public IRacingSdkData( bool throwYamlExceptions )
 		{
 			this.throwYamlExceptions = throwYamlExceptions;
@@ -70,11 +74,24 @@ namespace IRSDKSharper
 			deserializer = deserializerBuilder.Build();
 		}
 
+		/// <summary>
+		/// Sets the MemoryMappedViewAccessor instance to be used for accessing shared memory data.
+		/// </summary>
+		/// <param name="memoryMappedViewAccessor">
+		/// An instance of <see cref="MemoryMappedViewAccessor"/> that facilitates reading and writing to a shared memory region.
+		/// </param>
 		public void SetMemoryMappedViewAccessor( MemoryMappedViewAccessor memoryMappedViewAccessor )
 		{
 			this.memoryMappedViewAccessor = memoryMappedViewAccessor;
 		}
 
+		/// <summary>
+		/// Resets the internal state of the IRacingSdkData instance.
+		/// </summary>
+		/// <remarks>
+		/// This method clears telemetry data properties, resets the session information, and initializes various state-related fields
+		/// for subsequent use. It is typically used to prepare the instance for a new session or to clear data when no longer needed.
+		/// </remarks>
 		public void Reset()
 		{
 			TelemetryDataPropertiesReady = false;
@@ -90,6 +107,15 @@ namespace IRSDKSharper
 			retryUpdateSessionInfoAfterTickCount = int.MaxValue;
 		}
 
+		/// <summary>
+		/// Updates the state of telemetry data by reading the latest tick count and offset from the memory-mapped view accessor.
+		/// Also calculates dropped frames and initializes telemetry data properties if not yet prepared.
+		/// </summary>
+		/// <remarks>
+		/// This method processes the buffer data from the memory-mapped view accessor to track the current tick count and offset.
+		/// It ensures telemetry data properties are initialized and ready for use. Frames dropped between consecutive updates are calculated
+		/// and incremented in the process.
+		/// </remarks>
 		public void Update()
 		{
 			Debug.Assert( memoryMappedViewAccessor != null );
@@ -174,6 +200,12 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Updates the session information by reading the corresponding data from the shared memory.
+		/// </summary>
+		/// <returns>
+		/// A boolean value indicating whether the session information was successfully updated.
+		/// </returns>
 		public bool UpdateSessionInfo()
 		{
 			Debug.Assert( memoryMappedViewAccessor != null );
@@ -531,6 +563,11 @@ namespace IRSDKSharper
 			return encoding.GetString( buffer ).TrimEnd( '\0' );
 		}
 
+		/// <summary>
+		/// Tracks the state of a specific YAML key during parsing or processing.
+		/// Used to manage conditions such as ignoring characters, adding quotes,
+		/// or fixing issues related to specific keys in a YAML structure.
+		/// </summary>
 		internal class YamlKeyTracker
 		{
 			public string keyToFix = string.Empty;

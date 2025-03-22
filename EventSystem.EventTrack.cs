@@ -6,8 +6,18 @@ using System.Runtime.CompilerServices;
 
 namespace IRSDKSharper
 {
+	/// <summary>
+	/// The EventSystem class is a central part of managing recorded telemetry data and their tracks.
+	/// It is responsible for processing data streams from the iRacing SDK and storing them in a structured format.
+	/// </summary>
 	public partial class EventSystem
 	{
+		/// <summary>
+		/// The EventTrack abstract class serves as a foundational framework for handling and
+		/// recording specific telemetry data streams within the iRacing SDK environment. This class
+		/// encapsulates functionality to manage tracks identified by a name, data type, or datum
+		/// reference, providing essential methods for recording, retrieving, and loading data points.
+		/// </summary>
 		public abstract class EventTrack
 		{
 			public List<Event> Events { get; private set; } = new List<Event>();
@@ -116,6 +126,13 @@ namespace IRSDKSharper
 				};
 			}
 
+			/// <summary>
+			/// Retrieves the most relevant event for the specified session number and session time.
+			/// </summary>
+			/// <param name="sessionNum">The session number for which the event is being retrieved.</param>
+			/// <param name="sessionTime">The session time for which the event is being retrieved.</param>
+			/// <returns>An <see cref="Event"/> object that matches the session number and session time,
+			/// or null if no events are found.</returns>
 			public Event GetAt( int sessionNum, double sessionTime )
 			{
 				if ( Events.Count == 0 )
@@ -203,6 +220,7 @@ namespace IRSDKSharper
 				return defaultValue;
 			}
 
+			/// <inheritdoc/>
 			public override Event Record( EventSystem eventSystem, IRacingSdkData data )
 			{
 				Event _event = null;
@@ -275,6 +293,7 @@ namespace IRSDKSharper
 				return _event;
 			}
 
+			/// <inheritdoc/>
 			public override Event Record( EventSystem eventSystem, object newValueAsObject )
 			{
 				Event _event = null;
@@ -309,6 +328,7 @@ namespace IRSDKSharper
 				return _event;
 			}
 
+			/// <inheritdoc/>
 			public override void Load( int sessionNum, double sessionTime, BinaryReader binaryReader )
 			{
 				object newValueAsObject;
