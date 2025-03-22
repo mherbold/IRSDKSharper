@@ -10,13 +10,6 @@ namespace IRSDKSharper
 	/// </summary>
 	public partial class EventSystem
 	{
-		/// <summary>
-		/// Represents a base class for an event within the event system.
-		/// </summary>
-		/// <remarks>
-		/// This class serves as a template for events, holding shared properties and functionality.
-		/// Derived classes, such as Event, extend this base class to provide specific data handling for tracked events.
-		/// </remarks>
 		public abstract class Event
 		{
 			/// <summary>
