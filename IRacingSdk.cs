@@ -489,7 +489,7 @@ namespace IRSDKSharper
 
 				while ( keepThreadsAlive == 1 )
 				{
-					var signalReceived = simulatorAutoResetEvent?.WaitOne( 1000 ) ?? false;
+					var signalReceived = simulatorAutoResetEvent?.WaitOne( 3000 ) ?? false;
 
 					if ( signalReceived )
 					{
