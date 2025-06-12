@@ -5,6 +5,17 @@ using System.Security;
 
 namespace IRSDKSharper
 {
+	/// <summary>
+	/// Provides a collection of Windows API functions and constants used by the application.
+	/// </summary>
+	/// <remarks>
+	/// The WinApi class is a utility class that exposes commonly used Windows API methods
+	/// and constants using PInvoke (Platform Invocation Services). This class includes
+	/// methods that allow interaction with system-level Windows functionality, such as
+	/// event handling, window messaging, and low-level interprocess communication.
+	/// - This class is intended for internal use only.
+	/// - Some of the methods employ unmanaged code and require security considerations.
+	/// </remarks>
 	internal class WinApi
 	{
 		public const int ERROR_FILE_NOT_FOUND = 2;

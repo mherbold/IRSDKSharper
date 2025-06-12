@@ -4,6 +4,16 @@ using System.Collections;
 
 namespace IRSDKSharper
 {
+	/// <summary>
+	/// Represents a collection of telemetry data from the iRacing SDK, exposed as a list.
+	/// The class allows access to telemetry data mapped to key-value pairs, including metadata
+	/// such as units and descriptions.
+	/// </summary>
+	/// <remarks>
+	/// This class implements the <see cref="IList"/> interface but is read-only and fixed-size.
+	/// It is designed for accessing the telemetry data provided by iRacing SDK and does not
+	/// support modification or resizing.
+	/// </remarks>
 	public class IRacingSdkTelemetryDataAsList : IList
 	{
 		private readonly IRacingSdkData data;
@@ -20,11 +30,28 @@ namespace IRSDKSharper
 			Reset();
 		}
 
+		/// <summary>
+		/// Resets the internal state of the telemetry data list to its initial state.
+		/// </summary>
+		/// <remarks>
+		/// This method sets the internal index used for navigating telemetry data to its default value.
+		/// It is typically used to reinitialize the telemetry data list for fresh access.
+		/// </remarks>
 		public void Reset()
 		{
 			lastIndex = -1;
 		}
 
+		/// <summary>
+		/// Provides indexed access to the telemetry data in the collection.
+		/// </summary>
+		/// <param name="index">The zero-based index of the telemetry data to retrieve.</param>
+		/// <returns>An object representing the telemetry datum at the specified index.</returns>
+		/// <exception cref="NotImplementedException">Thrown when an attempt is made to set a value, as the collection is read-only.</exception>
+		/// <remarks>
+		/// Accessing an index retrieves the corresponding telemetry datum, internally caching the result
+		/// to optimize repeated lookups. The set accessor is not implemented, as the collection is immutable.
+		/// </remarks>
 		public object this[ int index ]
 		{
 			get
@@ -292,6 +319,16 @@ namespace IRSDKSharper
 			throw new NotImplementedException();
 		}
 
+		/// <summary>
+		/// Represents a telemetry data point within the iRacing SDK telemetry system.
+		/// Each Datum instance encapsulates a key, value, unit, and description
+		/// for detailed representation of a telemetry property.
+		/// </summary>
+		/// <remarks>
+		/// The class is primarily used internally by the <see cref="IRacingSdkTelemetryDataAsList"/>
+		/// to store telemetry property metadata and values. It includes essential information
+		/// that describes what the telemetry field represents, its value, and its unit of measure.
+		/// </remarks>
 		public class Datum
 		{
 			public string key;
