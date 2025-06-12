@@ -325,7 +325,9 @@ namespace IRSDKSharper
 				public int DivisionID { get; set; }
 				public int CurDriverIncidentCount { get; set; }
 				public int TeamIncidentCount { get; set; }
-			}
+                public int FlairID { get; set; }
+                public string FlairName { get; set; }
+            }
 		}
 
 		public class SplitTimeInfoModel
