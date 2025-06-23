@@ -3,6 +3,11 @@ using System;
 
 namespace IRSDKSharper
 {
+	/// <summary>
+	/// The IRacingSdkEnum class provides a collection of enumerations that represent
+	/// various constants used within the iRacing SDK.
+	/// These constants are used to interpret and control the behavior and state of the simulation.
+	/// </summary>
 	public class IRacingSdkEnum
 	{
 		public enum StatusField

@@ -3,6 +3,11 @@ using System.Collections.Generic;
 
 namespace IRSDKSharper
 {
+	/// <summary>
+	/// Represents the session information for an iRacing game session.
+	/// Contains detailed data about the current game environment, vehicles, participants,
+	/// and telemetry configuration.
+	/// </summary>
 	public class IRacingSdkSessionInfo
 	{
 		public WeekendInfoModel WeekendInfo { get; set; }
@@ -15,6 +20,11 @@ namespace IRSDKSharper
 
 		public CarSetupModel CarSetup { get; set; }
 
+		/// <summary>
+		/// Contains detailed information about the weekend settings and environment in an iRacing session.
+		/// This includes track details, weather conditions, event specifications,
+		/// and telemetry and configuration options.
+		/// </summary>
 		public class WeekendInfoModel
 		{
 			public string TrackName { get; set; }
@@ -72,6 +82,10 @@ namespace IRSDKSharper
 			public WeekendOptionsModel WeekendOptions { get; set; }
 			public TelemetryOptionsModel TelemetryOptions { get; set; }
 
+			/// <summary>
+			/// Represents the configuration options for a race weekend session.
+			/// Contains settings related to weather, starting conditions, format, and other session rules.
+			/// </summary>
 			public class WeekendOptionsModel
 			{
 				public int NumStarters { get; set; }
@@ -104,6 +118,10 @@ namespace IRSDKSharper
 				public string GreenWhiteCheckeredLimit { get; set; }
 			}
 
+			/// <summary>
+			/// Represents the telemetry options associated with an iRacing session.
+			/// Defines configuration details for telemetry data, such as file output settings.
+			/// </summary>
 			public class TelemetryOptionsModel
 			{
 				public string TelemetryDiskFile { get; set; }
@@ -111,10 +129,21 @@ namespace IRSDKSharper
 
 		}
 
+		/// <summary>
+		/// Encapsulates detailed information about individual sessions within an iRacing game session.
+		/// Provides data such as session type, duration, lap counts, and results including positions,
+		/// fastest laps, and qualify standings.
+		/// </summary>
 		public class SessionInfoModel
 		{
 			public List<SessionModel> Sessions { get; set; }
 
+			/// <summary>
+			/// Represents an individual session within an iRacing game session.
+			/// Provides information regarding session configuration, results,
+			/// and metrics including session type, lap counts, average times,
+			/// and various session standings.
+			/// </summary>
 			public class SessionModel
 			{
 				public int SessionNum { get; set; }
@@ -139,6 +168,11 @@ namespace IRSDKSharper
 				public List<FastestLapModel> ResultsFastestLap { get; set; }
 				public List<QualifyPositionModel> QualifyPositions { get; set; }
 
+				/// <summary>
+				/// Represents the positional data of a participant in an iRacing session.
+				/// Provides comprehensive information about the current position, lap details,
+				/// timing data, incidents, and other session-specific metrics related to a participant.
+				/// </summary>
 				public class PositionModel
 				{
 					public int Position { get; set; }
@@ -158,6 +192,10 @@ namespace IRSDKSharper
 					public string ReasonOutStr { get; set; }
 				}
 
+				/// <summary>
+				/// Represents the fastest lap data for a specific car in an iRacing session.
+				/// Contains information about the car index, lap number, and time achieved for the fastest lap.
+				/// </summary>
 				public class FastestLapModel
 				{
 					public int CarIdx { get; set; }
@@ -165,6 +203,11 @@ namespace IRSDKSharper
 					public float FastestTime { get; set; }
 				}
 
+				/// <summary>
+				/// Represents the qualifying position details for a participant within a session
+				/// of an iRacing game. This includes information such as overall position, class position,
+				/// car index, and their fastest lap performance.
+				/// </summary>
 				public class QualifyPositionModel
 				{
 					public int Position { get; set; }
@@ -176,10 +219,19 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Represents the qualifying results information for an iRacing session.
+		/// Provides details such as position, class position, car index, fastest lap, and fastest time
+		/// for each participant in the qualifying session.
+		/// </summary>
 		public class QualifyResultsInfoModel
 		{
 			public List<ResultModel> Results { get; set; }
 
+			/// <summary>
+			/// Represents the results for a single participant in a qualifying session.
+			/// Provides details including position, class position, car index, fastest lap, and fastest lap time.
+			/// </summary>
 			public class ResultModel
 			{
 				public int Position { get; set; }
@@ -190,10 +242,19 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Represents the camera information in an iRacing session.
+		/// Provides details about available camera groups and their respective cameras.
+		/// </summary>
 		public class CameraInfoModel
 		{
 			public List<GroupModel> Groups { get; set; }
 
+			/// <summary>
+			/// Represents a camera group within the iRacing session's camera information.
+			/// Contains details about the group, such as its identification number, name,
+			/// whether it is scenic, and its associated cameras.
+			/// </summary>
 			public class GroupModel
 			{
 				public int GroupNum { get; set; }
@@ -210,12 +271,21 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Represents the radio information for an iRacing session, including the selected radio,
+		/// available radios, and their respective frequencies and properties.
+		/// </summary>
 		public class RadioInfoModel
 		{
 			public int SelectedRadioNum { get; set; }
 
 			public List<RadioModel> Radios { get; set; }
 
+			/// <summary>
+			/// Represents a single radio within the radio information of an iRacing session.
+			/// Contains the properties of the radio, including its frequencies,
+			/// tuned frequency, scanning status, and other related attributes.
+			/// </summary>
 			public class RadioModel
 			{
 				public int RadioNum { get; set; }
@@ -226,6 +296,11 @@ namespace IRSDKSharper
 
 				public List<FrequencyModel> Frequencies { get; set; }
 
+				/// <summary>
+				/// Represents a frequency within a radio model in an iRacing session.
+				/// Contains detailed properties such as frequency number, name, priority,
+				/// and attributes related to scanning, muting, and permissions.
+				/// </summary>
 				public class FrequencyModel
 				{
 					public int FrequencyNum { get; set; }
@@ -243,6 +318,11 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Represents detailed information about the driver, their vehicle, and associated telemetry.
+		/// Includes properties related to the driver's car specifications, position, incidents,
+		/// and a list of drivers participating in the session.
+		/// </summary>
 		public class DriverInfoModel
 		{
 			public int DriverCarIdx { get; set; }
@@ -276,6 +356,11 @@ namespace IRSDKSharper
 
 			public List<DriverModel> Drivers { get; set; }
 
+			/// <summary>
+			/// Represents the information and attributes of a driver within an iRacing session.
+			/// Contains data such as driver identification, car details, team affiliation, licensing,
+			/// and performance metrics specific to a driver's role in the session.
+			/// </summary>
 			public class DriverModel
 			{
 				public int CarIdx { get; set; }
@@ -330,10 +415,18 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Represents information related to split times in an iRacing session.
+		/// Includes details regarding sector divisions and their starting points within the track.
+		/// </summary>
 		public class SplitTimeInfoModel
 		{
 			public List<SectorModel> Sectors { get; set; }
 
+			/// <summary>
+			/// Represents a sector within the track in an iRacing session.
+			/// Contains data about the sector number and its starting position as a percentage of the track length.
+			/// </summary>
 			public class SectorModel
 			{
 				public int SectorNum { get; set; }
@@ -341,6 +434,12 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Represents the car setup configuration in an iRacing game session.
+		/// Contains detailed data about various components of the car, including chassis,
+		/// drivetrain, suspension, and tires. Provides a structure for organizing the car's
+		/// setup properties for simulation purposes.
+		/// </
 		public class CarSetupModel
 		{
 			public int UpdateCount { get; set; }
@@ -350,6 +449,12 @@ namespace IRSDKSharper
 			public SuspensionModel Suspension { get; set; }
 			public TireModel Tires { get; set; }
 
+			/// <summary>
+			/// Represents the chassis configuration in the car setup model.
+			/// Contains detailed data related to different components such as
+			/// front, rear, and sides of the chassis, as well as specific adjustments
+			/// and configurations for optimal performance.
+			/// </summary>
 			public class ChassisModel
 			{
 				public FrontModel Front { get; set; }
@@ -361,6 +466,11 @@ namespace IRSDKSharper
 				public RightFrontModel RightFront { get; set; }
 				public RightRearModel RightRear { get; set; }
 
+				/// <summary>
+				/// Represents the configuration and attributes of the front components in the car setup model.
+				/// Provides detailed parameters for various adjustments and performance optimizations,
+				/// such as suspension, steering, and aerodynamic settings.
+				/// </summary>
 				public class FrontModel
 				{
 					public string AttachLeftSide { get; set; }
@@ -388,6 +498,11 @@ namespace IRSDKSharper
 					public string WingWicker { get; set; }
 				}
 
+				/// <summary>
+				/// Represents the configuration of the front anti-roll bar (ARB) in the chassis model.
+				/// Provides detailed settings related to the front ARB linkage, dimensions, preload,
+				/// and arm properties, which influence the vehicle's suspension behavior and handling.
+				/// </summary>
 				public class FrontArbModel
 				{
 					public string Attach { get; set; }
@@ -400,6 +515,11 @@ namespace IRSDKSharper
 					public string Preload { get; set; }
 				}
 
+				/// <summary>
+				/// Represents the configuration and settings related to the left front portion of the vehicle in the car setup model.
+				/// Contains detailed information about the suspension, shock absorbers, spring rates, alignment, and other critical
+				/// performance metrics for the left front of the car.
+				/// </summary>
 				public class LeftFrontModel
 				{
 					public string BumpStiffness { get; set; }
@@ -427,6 +547,10 @@ namespace IRSDKSharper
 					public string ToeIn { get; set; }
 				}
 
+				/// <summary>
+				/// Represents the setup parameters and configuration specific to the left rear portion of a vehicle's chassis.
+				/// Contains detailed properties such as suspension dynamics, shock absorber settings, and other customization options.
+				/// </summary>
 				public class LeftRearModel
 				{
 					public string BumpStiffness { get; set; }
@@ -458,11 +582,21 @@ namespace IRSDKSharper
 					public string TruckArmMount { get; set; }
 				}
 
+				/// <summary>
+				/// Represents miscellaneous car setup configurations that do not belong
+				/// to a specific component category such as front, rear, or sides.
+				/// Provides additional data like dashboard display settings.
+				/// </summary>
 				public class OtherModel
 				{
 					public string DashDisplayPage { get; set; }
 				}
 
+				/// <summary>
+				/// Represents the configuration and setup parameters for the right-front section of a vehicle chassis.
+				/// Contains detailed attributes such as suspension, alignment, and shock absorber settings
+				/// specific to the right-front part of the car.
+				/// </summary>
 				public class RightFrontModel
 				{
 					public string BumpStiffness { get; set; }
@@ -490,6 +624,12 @@ namespace IRSDKSharper
 					public string ToeIn { get; set; }
 				}
 
+				/// <summary>
+				/// Represents the configuration and parameters for the right rear component
+				/// of a vehicle's chassis setup. This includes various attributes such as
+				/// suspension stiffness, camber, ride height, spring rates, and other
+				/// adjustable settings specific to the right rear section of the chassis.
+				/// </summary>
 				public class RightRearModel
 				{
 					public string BumpStiffness { get; set; }
@@ -522,6 +662,12 @@ namespace IRSDKSharper
 					public string TruckArmPreload { get; set; }
 				}
 
+				/// <summary>
+				/// Represents the rear chassis configuration and adjustable parameters
+				/// for a car setup in an iRacing game session. This model contains various
+				/// properties related to suspension, aerodynamic components, and drivetrain settings
+				/// that can be configured to influence vehicle performance.
+				/// </summary>
 				public class RearModel
 				{
 					public string ArbArm { get; set; }
@@ -545,11 +691,21 @@ namespace IRSDKSharper
 				}
 			}
 
+			/// <summary>
+			/// Represents the drivetrain configuration within a car setup model.
+			/// Contains data related to components such as the differential and transmission,
+			/// allowing detailed simulation and customization of a vehicle's performance.
+			/// </summary>
 			public class DrivetrainModel
 			{
 				public DifferentialModel Differential { get; set; }
 				public TransmissionModel Transmission { get; set; }
 
+				/// <summary>
+				/// Represents the differential configuration within a car's drivetrain model.
+				/// Contains properties related to the differential setup, including clutch plates,
+				/// ramp angles, and preload settings, allowing fine-tuned adjustments of vehicle behavior.
+				/// </summary>
 				public class DifferentialModel
 				{
 					public string ClutchPlates { get; set; }
@@ -558,6 +714,11 @@ namespace IRSDKSharper
 					public string Preload { get; set; }
 				}
 
+				/// <summary>
+				/// Represents the transmission configuration within a car's drivetrain model.
+				/// Contains properties for defining gear ratios including first through fifth gears
+				/// as well as the final drive, enabling detailed simulation and optimization of vehicle performance.
+				/// </summary>
 				public class TransmissionModel
 				{
 					public string FifthGear { get; set; }
@@ -569,6 +730,10 @@ namespace IRSDKSharper
 				}
 			}
 
+			/// <summary>
+			/// Represents the suspension system configuration of a vehicle in an iRacing game session.
+			/// Includes detailed data about the front, rear, and individual tire suspension settings.
+			/// </summary>
 			public class SuspensionModel
 			{
 				public FrontModel Front { get; set; }
@@ -578,6 +743,10 @@ namespace IRSDKSharper
 				public RightRearModel RightRear { get; set; }
 				public RearModel Rear { get; set; }
 
+				/// <summary>
+				/// Represents the front suspension configuration of a vehicle in an iRacing game session.
+				/// Includes detailed settings such as anti-roll bar, brake bias, cross weight, and toe-in adjustments.
+				/// </summary>
 				public class FrontModel
 				{
 					public string AntiRollBar { get; set; }
@@ -586,6 +755,11 @@ namespace IRSDKSharper
 					public string ToeIn { get; set; }
 				}
 
+				/// <summary>
+				/// Represents the left front suspension settings of a vehicle in an iRacing game session.
+				/// Includes detailed configuration data such as bump stiffness, camber, caster, tire pressure,
+				/// ride height, and other suspension-related attributes specific to the left front tire.
+				/// </summary>
 				public class LeftFrontModel
 				{
 					public string BumpStiffness { get; set; }
@@ -601,6 +775,11 @@ namespace IRSDKSharper
 					public string SpringPerchOffset { get; set; }
 				}
 
+				/// <summary>
+				/// Represents the configuration of the left rear suspension and tire setup
+				/// of a vehicle in an iRacing game session. Includes parameters such as
+				/// camber angles, pressures, ride height, and other suspension-specific details.
+				/// </summary>
 				public class LeftRearModel
 				{
 					public string BumpStiffness { get; set; }
@@ -615,6 +794,11 @@ namespace IRSDKSharper
 					public string SpringPerchOffset { get; set; }
 				}
 
+				/// <summary>
+				/// Represents the configuration of the right front suspension of a vehicle in an iRacing game session.
+				/// Contains specific data related to suspension setup, including stiffness, camber, pressure, weight,
+				/// temperatures, tread condition, rebound, ride height, and spring adjustments.
+				/// </summary>
 				public class RightFrontModel
 				{
 					public string BumpStiffness { get; set; }
@@ -630,6 +814,10 @@ namespace IRSDKSharper
 					public string SpringPerchOffset { get; set; }
 				}
 
+				/// <summary>
+				/// Represents the configuration and telemetry data specific to the right-rear suspension and tire of a vehicle in an iRacing game session.
+				/// Includes detailed settings and measurements such as bump stiffness, camber, tire pressures, corner weight, and ride height.
+				/// </summary>
 				public class RightRearModel
 				{
 					public string BumpStiffness { get; set; }
@@ -644,6 +832,10 @@ namespace IRSDKSharper
 					public string SpringPerchOffset { get; set; }
 				}
 
+				/// <summary>
+				/// Represents the rear suspension configuration of a vehicle in an iRacing game session.
+				/// Includes detailed settings such as the anti-roll bar configuration, fuel level, and toe-in adjustments.
+				/// </summary>
 				public class RearModel
 				{
 					public string AntiRollBar { get; set; }
@@ -652,6 +844,11 @@ namespace IRSDKSharper
 				}
 			}
 
+			/// <summary>
+			/// Represents the tire configuration in an iRacing game's car setup model.
+			/// Contains detailed information about the left and right tire properties, including pressure,
+			/// temperature, tread status, and other related parameters.
+			/// </summary>
 			public class TireModel
 			{
 				public LeftTireModel LeftFront { get; set; }
@@ -659,6 +856,12 @@ namespace IRSDKSharper
 				public RightTireModel RightFront { get; set; }
 				public RightTireModel RightRear { get; set; }
 
+				/// <summary>
+				/// Represents the left tire configuration in an iRacing car setup.
+				/// Contains data specific to the left tires, including parameters such as pressure,
+				/// temperature, and tread status. This model provides detailed insight into
+				/// left tire performance and condition.
+				/// </summary>
 				public class LeftTireModel
 				{
 					public string ColdPressure { get; set; }
@@ -667,6 +870,12 @@ namespace IRSDKSharper
 					public string TreadRemaining { get; set; }
 				}
 
+				/// <summary>
+				/// Represents the right tire configuration in an iRacing car setup.
+				/// Contains data specific to the right tires, including parameters such as pressure,
+				/// temperature, stagger, and tread status. This model provides detailed insight into
+				/// right tire performance and condition.
+				/// </summary>
 				public class RightTireModel
 				{
 					public string ColdPressure { get; set; }
