@@ -25,6 +25,7 @@ namespace IRSDKSharper
 			public string TrackDisplayShortName { get; set; }
 			public string TrackConfigName { get; set; }
 			public string TrackCity { get; set; }
+			public string TrackState { get; set; }
 			public string TrackCountry { get; set; }
 			public string TrackAltitude { get; set; }
 			public string TrackLatitude { get; set; }
@@ -32,11 +33,14 @@ namespace IRSDKSharper
 			public string TrackNorthOffset { get; set; }
 			public int TrackNumTurns { get; set; }
 			public string TrackPitSpeedLimit { get; set; }
+			public string TrackPaceSpeed {  get; set; }
+			public int TrackNumPitStalls { get; set;  }
 			public string TrackType { get; set; }
 			public string TrackDirection { get; set; }
 			public string TrackWeatherType { get; set; }
 			public string TrackSkies { get; set; }
 			public string TrackSurfaceTemp { get; set; }
+			public string TrackSurfaceTempCrew { get; set; }
 			public string TrackAirTemp { get; set; }
 			public string TrackAirPressure { get; set; }
 			public string TrackWindVel { get; set; }
@@ -273,8 +277,16 @@ namespace IRSDKSharper
 			public string DriverSetupLoadTypeName { get; set; }
 			public int DriverSetupPassedTech { get; set; }
 			public int DriverIncidentCount { get; set; }
+			public float DriverBrakeCurvingFactor { get; set; }
 
+			public List<DriverTireModel> DriverTires { get; set; }
 			public List<DriverModel> Drivers { get; set; }
+
+			public class DriverTireModel
+			{
+				public int TireIndex {  get; set; }
+				public string TireCompoundType { get; set; }
+			}
 
 			public class DriverModel
 			{
@@ -295,6 +307,9 @@ namespace IRSDKSharper
 				public int CarIsElectric { get; set; }
 				public string CarScreenName { get; set; }
 				public string CarScreenNameShort { get; set; }
+				public int CarCfg { get; set; }
+				public string CarCfgName { get; set; }
+				public string CarCfgCustomPaintExt { get; set; }
 				public string CarClassShortName { get; set; }
 				public int CarClassRelSpeed { get; set; }
 				public int CarClassLicenseLevel { get; set; }
@@ -345,10 +360,42 @@ namespace IRSDKSharper
 		{
 			public int UpdateCount { get; set; }
 
+			public TireModel Tires { get; set; }
 			public ChassisModel Chassis { get; set; }
 			public DrivetrainModel Drivetrain { get; set; }
 			public SuspensionModel Suspension { get; set; }
-			public TireModel Tires { get; set; }
+
+			public class TireModel
+			{
+				public TireTypeModel TireType { get; set; }
+				public LeftTireModel LeftFront { get; set; }
+				public LeftTireModel LeftRear { get; set; }
+				public RightTireModel RightFront { get; set; }
+				public RightTireModel RightRear { get; set; }
+
+				public class TireTypeModel
+				{
+					public string TireType { get; set; }
+				}
+
+				public class LeftTireModel
+				{
+					public string StartingPressure { get; set; }
+					public string ColdPressure { get; set; }
+					public string LastHotPressure { get; set; }
+					public string LastTempsOMI { get; set; }
+					public string TreadRemaining { get; set; }
+				}
+
+				public class RightTireModel
+				{
+					public string ColdPressure { get; set; }
+					public string LastHotPressure { get; set; }
+					public string LastTempsIMO { get; set; }
+					public string Stagger { get; set; }
+					public string TreadRemaining { get; set; }
+				}
+			}
 
 			public class ChassisModel
 			{
@@ -649,31 +696,6 @@ namespace IRSDKSharper
 					public string AntiRollBar { get; set; }
 					public string FuelLevel { get; set; }
 					public string ToeIn { get; set; }
-				}
-			}
-
-			public class TireModel
-			{
-				public LeftTireModel LeftFront { get; set; }
-				public LeftTireModel LeftRear { get; set; }
-				public RightTireModel RightFront { get; set; }
-				public RightTireModel RightRear { get; set; }
-
-				public class LeftTireModel
-				{
-					public string ColdPressure { get; set; }
-					public string LastHotPressure { get; set; }
-					public string LastTempsOMI { get; set; }
-					public string TreadRemaining { get; set; }
-				}
-
-				public class RightTireModel
-				{
-					public string ColdPressure { get; set; }
-					public string LastHotPressure { get; set; }
-					public string LastTempsIMO { get; set; }
-					public string Stagger { get; set; }
-					public string TreadRemaining { get; set; }
 				}
 			}
 		}
