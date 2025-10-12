@@ -117,6 +117,8 @@ namespace IRSDKSharper
 
 		public class SessionInfoModel
 		{
+			public int CurrentSessionNum { get; set; }
+
 			public List<SessionModel> Sessions { get; set; }
 
 			public class SessionModel
