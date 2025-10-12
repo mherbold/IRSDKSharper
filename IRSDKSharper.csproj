@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net471;net6.0-windows7.0;net7.0-windows7.0</TargetFrameworks>
+    <TargetFrameworks>net471;net6.0-windows;net7.0-windows;net8.0-windows;net9.0-windows</TargetFrameworks>
+    <RollForward>Major</RollForward>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <RootNamespace>IRSDKSharper</RootNamespace>
@@ -16,38 +17,6 @@
     <Version>1.1.4</Version>
     <Title>IRSDKSharper</Title>
     <Platforms>AnyCPU;x64</Platforms>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net7.0-windows7.0|AnyCPU'">
-    <WarningLevel>5</WarningLevel>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net7.0-windows7.0|x64'">
-    <WarningLevel>5</WarningLevel>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net7.0-windows7.0|AnyCPU'">
-    <WarningLevel>5</WarningLevel>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net7.0-windows7.0|x64'">
-    <WarningLevel>5</WarningLevel>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0-windows7.0|AnyCPU'">
-    <WarningLevel>5</WarningLevel>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0-windows7.0|x64'">
-    <WarningLevel>5</WarningLevel>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net6.0-windows7.0|AnyCPU'">
-    <WarningLevel>5</WarningLevel>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net6.0-windows7.0|x64'">
-    <WarningLevel>5</WarningLevel>
   </PropertyGroup>
 
   <ItemGroup>
