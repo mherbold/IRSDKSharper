@@ -6,7 +6,8 @@ using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using System.Text;
-
+using System.Text.RegularExpressions;
+using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 
 namespace IRSDKSharper
@@ -203,7 +204,13 @@ namespace IRSDKSharper
 						return true;
 					}
 				}
-				catch ( Exception )
+                catch (YamlException ex)
+                {
+                    LogYamlError(ex, stringReader.ToString());
+                    if (throwYamlExceptions)
+                        throw;
+                }
+                catch ( Exception )
 				{
 					if ( throwYamlExceptions )
 					{
@@ -540,113 +547,197 @@ namespace IRSDKSharper
 			public bool addSecondQuote = false;
 		}
 
-		private static string FixInvalidYaml( byte[] yaml )
+		private string FixInvalidYaml(byte[] yaml)
 		{
-			const int MaxNumDrivers = 64;
-			const int MaxNumAdditionalBytesPerFixedKey = 2;
+			var rawYaml = Encoding.UTF8.GetString(yaml).TrimEnd('\0');
 
-			var keysToFix = new string[]
-			{
-				"AbbrevName:", "TeamName:", "UserName:", "Initials:", "DriverSetupName:"
-			};
-
-			var keyTrackers = new YamlKeyTracker[ keysToFix.Length ];
-
-			for ( var i = 0; i < keyTrackers.Length; i++ )
-			{
-				keyTrackers[ i ] = new YamlKeyTracker()
-				{
-					keyToFix = keysToFix[ i ]
-				};
-			}
-
-			var keyTrackersIgnoringUntilNextLine = 0;
-
-			var stringBuilder = new StringBuilder( yaml.Length + keysToFix.Length * MaxNumAdditionalBytesPerFixedKey * MaxNumDrivers );
-
-			foreach ( char ch in yaml )
-			{
-				if ( keyTrackersIgnoringUntilNextLine == keyTrackers.Length )
-				{
-					if ( ch == '\n' )
-					{
-						keyTrackersIgnoringUntilNextLine = 0;
-
-						foreach ( var keyTracker in keyTrackers )
-						{
-							keyTracker.counter = 0;
-							keyTracker.ignoreUntilNextLine = false;
-						}
-					}
-				}
-				else
-				{
-					foreach ( var keyTracker in keyTrackers )
-					{
-						if ( keyTracker.ignoreUntilNextLine )
-						{
-							if ( ch == '\n' )
-							{
-								keyTracker.counter = 0;
-								keyTracker.ignoreUntilNextLine = false;
-
-								keyTrackersIgnoringUntilNextLine--;
-							}
-						}
-						else if ( keyTracker.addFirstQuote )
-						{
-							if ( ch == '\n' )
-							{
-								keyTracker.counter = 0;
-								keyTracker.addFirstQuote = false;
-							}
-							else if ( ch != ' ' )
-							{
-								stringBuilder.Append( '\'' );
-
-								keyTracker.addFirstQuote = false;
-								keyTracker.addSecondQuote = true;
-							}
-						}
-						else if ( keyTracker.addSecondQuote )
-						{
-							if ( ch == '\n' )
-							{
-								stringBuilder.Append( '\'' );
-
-								keyTracker.counter = 0;
-								keyTracker.addSecondQuote = false;
-							}
-							else if ( ch == '\'' )
-							{
-								stringBuilder.Append( '\'' );
-							}
-						}
-						else
-						{
-							if ( ch == keyTracker.keyToFix[ keyTracker.counter ] )
-							{
-								keyTracker.counter++;
-
-								if ( keyTracker.counter == keyTracker.keyToFix.Length )
-								{
-									keyTracker.addFirstQuote = true;
-								}
-							}
-							else if ( ch != ' ' )
-							{
-								keyTracker.ignoreUntilNextLine = true;
-
-								keyTrackersIgnoringUntilNextLine++;
-							}
-						}
-					}
-				}
-
-				stringBuilder.Append( ch );
-			}
-
-			return stringBuilder.ToString();
+			return FixInvalidYaml(rawYaml);
 		}
-	}
+
+        private string FixInvalidYaml(string rawYaml)
+        {
+            if (string.IsNullOrWhiteSpace(rawYaml))
+                return rawYaml;
+
+            var regex = new Regex(
+                @"^(?<indent>\s*)(?<key>(CarDesignStr|HelmetDesignStr|SuitDesignStr|GlovesColorStr|CarNumberDesignStr))\s*:\s*,(?<rest>[A-Fa-f0-9,]+)\s*$",
+                RegexOptions.Multiline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+            return regex.Replace(rawYaml, m =>
+            {
+                var indent = m.Groups["indent"].Value;
+                var key = m.Groups["key"].Value;
+                var rest = m.Groups["rest"].Value.Trim();
+                return $"{indent}{key}: {rest}";
+            });
+        }
+
+        private static void LogYamlError(YamlException ex, string rawYaml)
+        {
+            Debug.WriteLine("⚠️ YAML parsing failed!");
+            Debug.WriteLine($"Message : {ex.Message}");
+            Debug.WriteLine($"Start   : line {ex.Start.Line}, column {ex.Start.Column}");
+            Debug.WriteLine($"End     : line {ex.End.Line}, column {ex.End.Column}");
+
+            // Extract and show a few context lines around the error
+            if (ex?.Start != null)
+            {
+                var lines = rawYaml.Split('\n');
+                var errLine = ex.Start.Line - 1;
+                var from = Math.Max(0, errLine - 3);
+                var to = Math.Min(lines.Length - 1, errLine + 3);
+
+                Debug.WriteLine("Context:");
+                for (var i = from; i <= to; i++)
+                {
+                    var marker = (i == errLine) ? ">> " : "   ";
+                    Debug.WriteLine($"{marker}{i + 1,4}: {lines[i]}");
+                }
+            }
+        }
+
+        //private static string FixInvalidYaml( byte[] yaml )
+        //{
+        //	const int MaxNumDrivers = 64;
+        //	const int MaxNumAdditionalBytesPerFixedKey = 2;
+
+        //	var keysToFix = new string[]
+        //	{
+        //		"AbbrevName:", "TeamName:", "UserName:", "Initials:", "DriverSetupName:"
+        //	};
+
+        //	var keyTrackers = new YamlKeyTracker[ keysToFix.Length ];
+
+        //	for ( var i = 0; i < keyTrackers.Length; i++ )
+        //	{
+        //		keyTrackers[ i ] = new YamlKeyTracker()
+        //		{
+        //			keyToFix = keysToFix[ i ]
+        //		};
+        //	}
+
+        //	var keyTrackersIgnoringUntilNextLine = 0;
+
+        //	var stringBuilder = new StringBuilder( yaml.Length + keysToFix.Length * MaxNumAdditionalBytesPerFixedKey * MaxNumDrivers );
+
+        //	foreach ( char ch in yaml )
+        //	{
+        //		if ( keyTrackersIgnoringUntilNextLine == keyTrackers.Length )
+        //		{
+        //			if ( ch == '\n' )
+        //			{
+        //				keyTrackersIgnoringUntilNextLine = 0;
+
+        //				foreach ( var keyTracker in keyTrackers )
+        //				{
+        //					keyTracker.counter = 0;
+        //					keyTracker.ignoreUntilNextLine = false;
+        //				}
+        //			}
+        //		}
+        //		else
+        //		{
+        //			foreach ( var keyTracker in keyTrackers )
+        //			{
+        //				if ( keyTracker.ignoreUntilNextLine )
+        //				{
+        //					if ( ch == '\n' )
+        //					{
+        //						keyTracker.counter = 0;
+        //						keyTracker.ignoreUntilNextLine = false;
+
+        //						keyTrackersIgnoringUntilNextLine--;
+        //					}
+        //				}
+        //				else if ( keyTracker.addFirstQuote )
+        //				{
+        //					if ( ch == '\n' )
+        //					{
+        //						keyTracker.counter = 0;
+        //						keyTracker.addFirstQuote = false;
+        //					}
+        //					else if ( ch != ' ' )
+        //					{
+        //						stringBuilder.Append( '\'' );
+
+        //						keyTracker.addFirstQuote = false;
+        //						keyTracker.addSecondQuote = true;
+        //					}
+        //				}
+        //				else if ( keyTracker.addSecondQuote )
+        //				{
+        //					if ( ch == '\n' )
+        //					{
+        //						stringBuilder.Append( '\'' );
+
+        //						keyTracker.counter = 0;
+        //						keyTracker.addSecondQuote = false;
+        //					}
+        //					else if ( ch == '\'' )
+        //					{
+        //						stringBuilder.Append( '\'' );
+        //					}
+        //				}
+        //				else
+        //				{
+        //					if ( ch == keyTracker.keyToFix[ keyTracker.counter ] )
+        //					{
+        //						keyTracker.counter++;
+
+        //						if ( keyTracker.counter == keyTracker.keyToFix.Length )
+        //						{
+        //							keyTracker.addFirstQuote = true;
+        //						}
+        //					}
+        //					else if ( ch != ' ' )
+        //					{
+        //						keyTracker.ignoreUntilNextLine = true;
+
+        //						keyTrackersIgnoringUntilNextLine++;
+        //					}
+        //				}
+        //			}
+        //		}
+
+        //		stringBuilder.Append( ch );
+        //	}
+
+        //	return stringBuilder.ToString();
+        //}
+
+        public string GetRawYamlStringUtf8()
+        {
+            Debug.Assert(memoryMappedViewAccessor != null);
+
+            var sessionInfoLength = SessionInfoLength;
+
+            if (sessionInfoLength > 0)
+            {
+                var bytes = new byte[sessionInfoLength];
+
+                memoryMappedViewAccessor.ReadArray(SessionInfoOffset, bytes, 0, sessionInfoLength);
+
+                var utf8string = Encoding.UTF8.GetString(bytes, 0, sessionInfoLength);
+                return utf8string;
+            }
+            return string.Empty;
+        }
+
+        public IRacingSdkSessionInfo TestYaml(string rawString)
+        {
+            var fixedYaml = FixInvalidYaml(rawString);
+            var stringReader1 = new StringReader(fixedYaml);
+            try
+            {
+                var sessionInfo = deserializer.Deserialize<IRacingSdkSessionInfo>(stringReader1);
+                return sessionInfo;
+            }
+            catch (YamlException ex)
+            {
+                LogYamlError(ex, stringReader1.ToString());
+            }
+
+            return null;
+        }
+    }
 }
