@@ -376,14 +376,15 @@ namespace IRSDKSharper
 			public SuspensionModel Suspension { get; set; }
 
             public class TireModel
-			{
-				public TireTypeModel TireType { get; set; }
+			{				
+                public TireTypeModel TireType { get; set; }
 				public LeftTireModel LeftFront { get; set; }
 				public LeftTireModel LeftRear { get; set; }
 				public RightTireModel RightFront { get; set; }
 				public RightTireModel RightRear { get; set; }
+                public AeroBalanceCalcModel AeroBalanceCalc { get; set; }
 
-				public class TireTypeModel
+                public class TireTypeModel
 				{
 					public string TireType { get; set; }
 				}
@@ -405,6 +406,15 @@ namespace IRSDKSharper
 					public string Stagger { get; set; }
 					public string TreadRemaining { get; set; }
 					public string StartingPressure { get; set; }
+                }
+
+				public class AeroBalanceCalcModel
+				{
+                    public string FrontRhAtSpeed { get; set; }
+					public string RearRhAtSpeed { get; set; }
+                    public string RearWingAngle { get; set; }
+                    public string FrontDownforce { get; set; }
+
                 }
 			}
 
