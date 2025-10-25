@@ -43,6 +43,7 @@ namespace IRSDKSharper
 			public string TrackSurfaceTempCrew { get; set; }
 			public string TrackAirTemp { get; set; }
 			public string TrackAirPressure { get; set; }
+			public string TrackAirDensity { get; set; }
 			public string TrackWindVel { get; set; }
 			public string TrackWindDir { get; set; }
 			public string TrackRelativeHumidity { get; set; }
@@ -72,8 +73,10 @@ namespace IRSDKSharper
 			public string BuildType { get; set; }
 			public string BuildTarget { get; set; }
 			public string BuildVersion { get; set; }
+			public string AIRosterName { get; set; }
+			public string RaceFarm { get; set; }
 
-			public WeekendOptionsModel WeekendOptions { get; set; }
+            public WeekendOptionsModel WeekendOptions { get; set; }
 			public TelemetryOptionsModel TelemetryOptions { get; set; }
 
 			public class WeekendOptionsModel
@@ -253,7 +256,9 @@ namespace IRSDKSharper
 		{
 			public int DriverCarIdx { get; set; }
 			public int DriverUserID { get; set; }
-			public int PaceCarIdx { get; set; }
+			public int DriverIsAdmin { get; set; }
+
+            public int PaceCarIdx { get; set; }
 			public float DriverHeadPosX { get; set; }
 			public float DriverHeadPosY { get; set; }
 			public float DriverHeadPosZ { get; set; }
@@ -280,8 +285,11 @@ namespace IRSDKSharper
 			public int DriverSetupPassedTech { get; set; }
 			public int DriverIncidentCount { get; set; }
 			public float DriverBrakeCurvingFactor { get; set; }
+			public string DriverGearboxType { get; set; }
+			public string DriverGearboxControlType { get; set; }
+			public string DriverCarShiftAid { get; set; }
 
-			public List<DriverTireModel> DriverTires { get; set; }
+            public List<DriverTireModel> DriverTires { get; set; }
 			public List<DriverModel> Drivers { get; set; }
 
 			public class DriverTireModel
@@ -362,20 +370,21 @@ namespace IRSDKSharper
 		{
 			public int UpdateCount { get; set; }
 
-			public TireModel Tires { get; set; }
+			public TireModel TiresAero { get; set; }
 			public ChassisModel Chassis { get; set; }
 			public DrivetrainModel Drivetrain { get; set; }
 			public SuspensionModel Suspension { get; set; }
 
-			public class TireModel
-			{
-				public TireTypeModel TireType { get; set; }
+            public class TireModel
+			{				
+                public TireTypeModel TireType { get; set; }
 				public LeftTireModel LeftFront { get; set; }
 				public LeftTireModel LeftRear { get; set; }
 				public RightTireModel RightFront { get; set; }
 				public RightTireModel RightRear { get; set; }
+                public AeroBalanceCalcModel AeroBalanceCalc { get; set; }
 
-				public class TireTypeModel
+                public class TireTypeModel
 				{
 					public string TireType { get; set; }
 				}
@@ -387,7 +396,7 @@ namespace IRSDKSharper
 					public string LastHotPressure { get; set; }
 					public string LastTempsOMI { get; set; }
 					public string TreadRemaining { get; set; }
-				}
+                }
 
 				public class RightTireModel
 				{
@@ -396,7 +405,17 @@ namespace IRSDKSharper
 					public string LastTempsIMO { get; set; }
 					public string Stagger { get; set; }
 					public string TreadRemaining { get; set; }
-				}
+					public string StartingPressure { get; set; }
+                }
+
+				public class AeroBalanceCalcModel
+				{
+                    public string FrontRhAtSpeed { get; set; }
+					public string RearRhAtSpeed { get; set; }
+                    public string RearWingAngle { get; set; }
+                    public string FrontDownforce { get; set; }
+
+                }
 			}
 
 			public class ChassisModel
@@ -406,13 +425,17 @@ namespace IRSDKSharper
 				public LeftFrontModel LeftFront { get; set; }
 				public LeftRearModel LeftRear { get; set; }
 				public OtherModel Other { get; set; }
-				public RearModel Rear { get; set; }
+				public BrakesInCarDialsModel BrakesInCarDials { get; set; }
+                public RearModel Rear { get; set; }
 				public RightFrontModel RightFront { get; set; }
 				public RightRearModel RightRear { get; set; }
 
 				public class FrontModel
 				{
-					public string AttachLeftSide { get; set; }
+					public int ArbSetting { get; set; }
+					public string FuelLevel { get; set; }
+					public string FuelLowWarning { get; set; }
+                    public string AttachLeftSide { get; set; }
 					public string ArbArms { get; set; }
 					public string ArbDiameter { get; set; }
 					public string BallastForward { get; set; }
@@ -512,6 +535,14 @@ namespace IRSDKSharper
 					public string DashDisplayPage { get; set; }
 				}
 
+				public class BrakesInCarDialsModel
+				{
+                    public string DisplayPage { get; set; }
+                    public string BrakePressureBias { get; set; }
+					public string CrossWeight {  get; set; }
+					public string FrontWeight { get; set; }
+                }
+
 				public class RightFrontModel
 				{
 					public string BumpStiffness { get; set; }
@@ -591,7 +622,9 @@ namespace IRSDKSharper
 					public string ToeIn { get; set; }
 					public string WingAngle { get; set; }
 					public string WingWicker { get; set; }
-				}
+					public int ArbSetting { get; set; }
+					public int WingSetting { get; set; }
+                }
 			}
 
 			public class DrivetrainModel
