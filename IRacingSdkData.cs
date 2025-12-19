@@ -547,7 +547,7 @@ namespace IRSDKSharper
 
 			var keysToFix = new string[]
 			{
-				"AbbrevName:", "TeamName:", "UserName:", "Initials:", "DriverSetupName:"
+				"AbbrevName:", "TeamName:", "UserName:", "Initials:", "DriverSetupName:", "CarDesignStr:"
 			};
 
 			var keyTrackers = new YamlKeyTracker[ keysToFix.Length ];
