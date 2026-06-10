@@ -6,8 +6,14 @@ using System.IO;
 
 namespace IRSDKSharper
 {
+	/// <summary>
+	/// Records selected telemetry and session-info changes into event tracks that can later be replayed.
+	/// </summary>
 	public partial class EventSystem
 	{
+		/// <summary>
+		/// Gets the event tracks currently managed by the event system.
+		/// </summary>
 		public Dictionary<string, EventTrack> Tracks { get; private set; } = new Dictionary<string, EventTrack>();
 		public static HashSet<string> DisallowedTelemetryDataNames { get; private set; } = new HashSet<string>
 		{
@@ -126,11 +132,19 @@ namespace IRSDKSharper
 
 		private bool frameHeaderRecorded = false;
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="EventSystem"/> class.
+		/// </summary>
+		/// <param name="irsdkSharper">The owning SDK instance.</param>
 		public EventSystem( IRacingSdk irsdkSharper )
 		{
 			this.irsdkSharper = irsdkSharper;
 		}
 
+		/// <summary>
+		/// Sets the directory used to load or persist event-system data.
+		/// </summary>
+		/// <param name="directory">The directory path to use.</param>
 		public void SetDirectory( string directory )
 		{
 			irsdkSharper.Log( $"EventSystem - SetDirectory( {directory} )" );
@@ -145,6 +159,9 @@ namespace IRSDKSharper
 			Reset();
 		}
 
+		/// <summary>
+		/// Clears all loaded or recorded event data and resets derived state.
+		/// </summary>
 		public void Reset()
 		{
 			irsdkSharper.Log( "EventSystem - Reset()" );
@@ -174,6 +191,10 @@ namespace IRSDKSharper
 			ResetCalculatedTracks();
 		}
 
+		/// <summary>
+		/// Processes the latest SDK snapshot and records any configured value changes.
+		/// </summary>
+		/// <param name="data">The current SDK data snapshot.</param>
 		public void Update( IRacingSdkData data )
 		{
 			if ( data.SessionInfo is IRacingSdkSessionInfo sessionInfo )
@@ -226,6 +247,12 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Gets or allocates the binary identifier for a track name.
+		/// </summary>
+		/// <param name="trackName">The event track name.</param>
+		/// <param name="varType">The track value type.</param>
+		/// <returns>The numeric identifier written to the event stream.</returns>
 		public short GetTrackNameId( string trackName, IRacingSdkEnum.VarType varType )
 		{
 			if ( trackNameDictionary.ContainsKey( trackName ) )

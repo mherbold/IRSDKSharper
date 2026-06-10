@@ -4,6 +4,9 @@ using System.Collections;
 
 namespace IRSDKSharper
 {
+	/// <summary>
+	/// Exposes telemetry values as a flat <see cref="IList"/> of formatted entries.
+	/// </summary>
 	public class IRacingSdkTelemetryDataAsList : IList
 	{
 		private readonly IRacingSdkData data;
@@ -13,6 +16,10 @@ namespace IRSDKSharper
 		private int lastIndex;
 		private Datum lastDatum;
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="IRacingSdkTelemetryDataAsList"/> class.
+		/// </summary>
+		/// <param name="data">The data source to expose.</param>
 		public IRacingSdkTelemetryDataAsList( IRacingSdkData data )
 		{
 			this.data = data;
@@ -20,6 +27,9 @@ namespace IRSDKSharper
 			Reset();
 		}
 
+		/// <summary>
+		/// Clears the cached index lookup for the next telemetry access.
+		/// </summary>
 		public void Reset()
 		{
 			lastIndex = -1;
@@ -247,51 +257,94 @@ namespace IRSDKSharper
 
 		public object SyncRoot => throw new NotImplementedException();
 
+		/// <summary>
+		/// Adds an item to the list.
+		/// </summary>
+		/// <param name="value">The value to add.</param>
+		/// <returns>The position into which the new element was inserted.</returns>
 		public int Add( object value )
 		{
 			throw new NotImplementedException();
 		}
 
+		/// <summary>
+		/// Removes all items from the list.
+		/// </summary>
 		public void Clear()
 		{
 			throw new NotImplementedException();
 		}
 
+		/// <summary>
+		/// Determines whether the list contains a specific value.
+		/// </summary>
+		/// <param name="value">The value to locate.</param>
+		/// <returns><see langword="true"/> if the value is present; otherwise, <see langword="false"/>.</returns>
 		public bool Contains( object value )
 		{
 			throw new NotImplementedException();
 		}
 
+		/// <summary>
+		/// Copies the list elements to an array.
+		/// </summary>
+		/// <param name="array">The destination array.</param>
+		/// <param name="index">The zero-based array index at which copying begins.</param>
 		public void CopyTo( Array array, int index )
 		{
 			throw new NotImplementedException();
 		}
 
+		/// <summary>
+		/// Returns an enumerator for the list.
+		/// </summary>
+		/// <returns>An enumerator for the current list.</returns>
 		public IEnumerator GetEnumerator()
 		{
 			throw new NotImplementedException();
 		}
 
+		/// <summary>
+		/// Returns the index of a value in the list.
+		/// </summary>
+		/// <param name="value">The value to locate.</param>
+		/// <returns>The zero-based index of the value if found; otherwise, -1.</returns>
 		public int IndexOf( object value )
 		{
 			throw new NotImplementedException();
 		}
 
+		/// <summary>
+		/// Inserts a value into the list.
+		/// </summary>
+		/// <param name="index">The zero-based insertion index.</param>
+		/// <param name="value">The value to insert.</param>
 		public void Insert( int index, object value )
 		{
 			throw new NotImplementedException();
 		}
 
+		/// <summary>
+		/// Removes the first occurrence of a value from the list.
+		/// </summary>
+		/// <param name="value">The value to remove.</param>
 		public void Remove( object value )
 		{
 			throw new NotImplementedException();
 		}
 
+		/// <summary>
+		/// Removes the value at the specified index.
+		/// </summary>
+		/// <param name="index">The zero-based index of the element to remove.</param>
 		public void RemoveAt( int index )
 		{
 			throw new NotImplementedException();
 		}
 
+		/// <summary>
+		/// Represents a single formatted telemetry entry.
+		/// </summary>
 		public class Datum
 		{
 			public string key;
@@ -299,6 +352,13 @@ namespace IRSDKSharper
 			public string unit;
 			public string description;
 
+			/// <summary>
+			/// Initializes a new instance of the <see cref="Datum"/> class.
+			/// </summary>
+			/// <param name="key">The telemetry field name.</param>
+			/// <param name="value">The formatted telemetry value.</param>
+			/// <param name="unit">The telemetry unit.</param>
+			/// <param name="description">The telemetry description.</param>
 			public Datum( string key, string value, string unit, string description )
 			{
 				this.key = key;

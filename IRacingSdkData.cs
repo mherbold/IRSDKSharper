@@ -11,6 +11,9 @@ using YamlDotNet.Serialization;
 
 namespace IRSDKSharper
 {
+	/// <summary>
+	/// Represents the current iRacing shared memory snapshot and typed accessors for its values.
+	/// </summary>
 	public class IRacingSdkData
 	{
 		public bool TelemetryDataPropertiesReady { get; private set; } = false;
@@ -46,6 +49,10 @@ namespace IRSDKSharper
 
 		private MemoryMappedViewAccessor memoryMappedViewAccessor = null;
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="IRacingSdkData"/> class.
+		/// </summary>
+		/// <param name="throwYamlExceptions"><see langword="true"/> to rethrow YAML parsing failures instead of scheduling a retry.</param>
 		public IRacingSdkData( bool throwYamlExceptions )
 		{
 			this.throwYamlExceptions = throwYamlExceptions;
@@ -70,11 +77,18 @@ namespace IRSDKSharper
 			deserializer = deserializerBuilder.Build();
 		}
 
+		/// <summary>
+		/// Sets the memory-mapped view accessor used to read simulator data.
+		/// </summary>
+		/// <param name="memoryMappedViewAccessor">The view accessor for the iRacing shared memory block.</param>
 		public void SetMemoryMappedViewAccessor( MemoryMappedViewAccessor memoryMappedViewAccessor )
 		{
 			this.memoryMappedViewAccessor = memoryMappedViewAccessor;
 		}
 
+		/// <summary>
+		/// Clears cached telemetry metadata and parsed session information.
+		/// </summary>
 		public void Reset()
 		{
 			TelemetryDataPropertiesReady = false;
@@ -90,6 +104,9 @@ namespace IRSDKSharper
 			retryUpdateSessionInfoAfterTickCount = int.MaxValue;
 		}
 
+		/// <summary>
+		/// Refreshes header information and telemetry variable descriptors from shared memory.
+		/// </summary>
 		public void Update()
 		{
 			Debug.Assert( memoryMappedViewAccessor != null );
@@ -174,6 +191,10 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Reads and parses the latest session info YAML payload.
+		/// </summary>
+		/// <returns><see langword="true"/> if a new payload was parsed successfully; otherwise, <see langword="false"/>.</returns>
 		public bool UpdateSessionInfo()
 		{
 			Debug.Assert( memoryMappedViewAccessor != null );
@@ -219,6 +240,12 @@ namespace IRSDKSharper
 			return false;
 		}
 
+		/// <summary>
+		/// Reads a <see cref="char"/> telemetry value by variable name.
+		/// </summary>
+		/// <param name="name">The telemetry variable name.</param>
+		/// <param name="index">The zero-based element index for array values.</param>
+		/// <returns>The requested <see cref="char"/> value.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public char GetChar( string name, int index = 0 )
 		{
@@ -229,6 +256,12 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadChar( Offset + TelemetryDataProperties[ name ].Offset + index );
 		}
 
+		/// <summary>
+		/// Reads a <see cref="char"/> telemetry value using a cached datum definition.
+		/// </summary>
+		/// <param name="datum">The telemetry datum to read.</param>
+		/// <param name="index">The zero-based element index for array values.</param>
+		/// <returns>The requested <see cref="char"/> value.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public char GetChar( IRacingSdkDatum datum, int index = 0 )
 		{
@@ -239,6 +272,14 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadChar( Offset + datum.Offset + index );
 		}
 
+		/// <summary>
+		/// Reads multiple <see cref="char"/> telemetry values into an array.
+		/// </summary>
+		/// <param name="name">The telemetry variable name.</param>
+		/// <param name="array">The destination array.</param>
+		/// <param name="index">The destination array index.</param>
+		/// <param name="count">The number of elements to read.</param>
+		/// <returns>The number of elements copied into <paramref name="array"/>.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetCharArray( string name, char[] array, int index, int count )
 		{
@@ -249,6 +290,12 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
 		}
 
+		/// <summary>
+		/// Reads a <see cref="bool"/> telemetry value by variable name.
+		/// </summary>
+		/// <param name="name">The telemetry variable name.</param>
+		/// <param name="index">The zero-based element index for array values.</param>
+		/// <returns>The requested <see cref="bool"/> value.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public bool GetBool( string name, int index = 0 )
 		{
@@ -259,6 +306,12 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadBoolean( Offset + TelemetryDataProperties[ name ].Offset + index );
 		}
 
+		/// <summary>
+		/// Reads a <see cref="bool"/> telemetry value using a cached datum definition.
+		/// </summary>
+		/// <param name="datum">The telemetry datum to read.</param>
+		/// <param name="index">The zero-based element index for array values.</param>
+		/// <returns>The requested <see cref="bool"/> value.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public bool GetBool( IRacingSdkDatum datum, int index = 0 )
 		{
@@ -269,6 +322,14 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadBoolean( Offset + datum.Offset + index );
 		}
 
+		/// <summary>
+		/// Reads multiple <see cref="bool"/> telemetry values into an array by variable name.
+		/// </summary>
+		/// <param name="name">The telemetry variable name.</param>
+		/// <param name="array">The destination array.</param>
+		/// <param name="index">The destination array index.</param>
+		/// <param name="count">The number of elements to read.</param>
+		/// <returns>The number of elements copied into <paramref name="array"/>.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetBoolArray( string name, bool[] array, int index, int count )
 		{
@@ -279,6 +340,14 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
 		}
 
+		/// <summary>
+		/// Reads multiple <see cref="bool"/> telemetry values into an array using a cached datum definition.
+		/// </summary>
+		/// <param name="datum">The telemetry datum to read.</param>
+		/// <param name="array">The destination array.</param>
+		/// <param name="index">The destination array index.</param>
+		/// <param name="count">The number of elements to read.</param>
+		/// <returns>The number of elements copied into <paramref name="array"/>.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetBoolArray( IRacingSdkDatum datum, bool[] array, int index, int count )
 		{
@@ -289,6 +358,12 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadArray( Offset + datum.Offset, array, index, count );
 		}
 
+		/// <summary>
+		/// Reads an <see cref="int"/> telemetry value by variable name.
+		/// </summary>
+		/// <param name="name">The telemetry variable name.</param>
+		/// <param name="index">The zero-based element index for array values.</param>
+		/// <returns>The requested <see cref="int"/> value.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetInt( string name, int index = 0 )
 		{
@@ -299,6 +374,12 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadInt32( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
 		}
 
+		/// <summary>
+		/// Reads an <see cref="int"/> telemetry value using a cached datum definition.
+		/// </summary>
+		/// <param name="datum">The telemetry datum to read.</param>
+		/// <param name="index">The zero-based element index for array values.</param>
+		/// <returns>The requested <see cref="int"/> value.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetInt( IRacingSdkDatum datum, int index = 0 )
 		{
@@ -309,6 +390,14 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadInt32( Offset + datum.Offset + index * 4 );
 		}
 
+		/// <summary>
+		/// Reads multiple <see cref="int"/> telemetry values into an array by variable name.
+		/// </summary>
+		/// <param name="name">The telemetry variable name.</param>
+		/// <param name="array">The destination array.</param>
+		/// <param name="index">The destination array index.</param>
+		/// <param name="count">The number of elements to read.</param>
+		/// <returns>The number of elements copied into <paramref name="array"/>.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetIntArray( string name, int[] array, int index, int count )
 		{
@@ -319,6 +408,14 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
 		}
 
+		/// <summary>
+		/// Reads multiple <see cref="int"/> telemetry values into an array using a cached datum definition.
+		/// </summary>
+		/// <param name="datum">The telemetry datum to read.</param>
+		/// <param name="array">The destination array.</param>
+		/// <param name="index">The destination array index.</param>
+		/// <param name="count">The number of elements to read.</param>
+		/// <returns>The number of elements copied into <paramref name="array"/>.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetIntArray( IRacingSdkDatum datum, int[] array, int index, int count )
 		{
@@ -329,6 +426,12 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadArray( Offset + datum.Offset, array, index, count );
 		}
 
+		/// <summary>
+		/// Reads an unsigned bit field telemetry value by variable name.
+		/// </summary>
+		/// <param name="name">The telemetry variable name.</param>
+		/// <param name="index">The zero-based element index for array values.</param>
+		/// <returns>The requested bit field value.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public uint GetBitField( string name, int index = 0 )
 		{
@@ -339,6 +442,12 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadUInt32( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
 		}
 
+		/// <summary>
+		/// Reads an unsigned bit field telemetry value using a cached datum definition.
+		/// </summary>
+		/// <param name="datum">The telemetry datum to read.</param>
+		/// <param name="index">The zero-based element index for array values.</param>
+		/// <returns>The requested bit field value.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public uint GetBitField( IRacingSdkDatum datum, int index = 0 )
 		{
@@ -349,6 +458,14 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadUInt32( Offset + datum.Offset + index * 4 );
 		}
 
+		/// <summary>
+		/// Reads multiple bit field telemetry values into an array by variable name.
+		/// </summary>
+		/// <param name="name">The telemetry variable name.</param>
+		/// <param name="array">The destination array.</param>
+		/// <param name="index">The destination array index.</param>
+		/// <param name="count">The number of elements to read.</param>
+		/// <returns>The number of elements copied into <paramref name="array"/>.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetBitFieldArray( string name, uint[] array, int index, int count )
 		{
@@ -359,6 +476,14 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
 		}
 
+		/// <summary>
+		/// Reads multiple bit field telemetry values into an array using a cached datum definition.
+		/// </summary>
+		/// <param name="datum">The telemetry datum to read.</param>
+		/// <param name="array">The destination array.</param>
+		/// <param name="index">The destination array index.</param>
+		/// <param name="count">The number of elements to read.</param>
+		/// <returns>The number of elements copied into <paramref name="array"/>.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetBitFieldArray( IRacingSdkDatum datum, uint[] array, int index, int count )
 		{
@@ -369,6 +494,12 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadArray( Offset + datum.Offset, array, index, count );
 		}
 
+		/// <summary>
+		/// Reads a <see cref="float"/> telemetry value by variable name.
+		/// </summary>
+		/// <param name="name">The telemetry variable name.</param>
+		/// <param name="index">The zero-based element index for array values.</param>
+		/// <returns>The requested <see cref="float"/> value.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public float GetFloat( string name, int index = 0 )
 		{
@@ -379,6 +510,12 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadSingle( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
 		}
 
+		/// <summary>
+		/// Reads a <see cref="float"/> telemetry value using a cached datum definition.
+		/// </summary>
+		/// <param name="datum">The telemetry datum to read.</param>
+		/// <param name="index">The zero-based element index for array values.</param>
+		/// <returns>The requested <see cref="float"/> value.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public float GetFloat( IRacingSdkDatum datum, int index = 0 )
 		{
@@ -389,6 +526,14 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadSingle( Offset + datum.Offset + index * 4 );
 		}
 
+		/// <summary>
+		/// Reads multiple <see cref="float"/> telemetry values into an array by variable name.
+		/// </summary>
+		/// <param name="name">The telemetry variable name.</param>
+		/// <param name="array">The destination array.</param>
+		/// <param name="index">The destination array index.</param>
+		/// <param name="count">The number of elements to read.</param>
+		/// <returns>The number of elements copied into <paramref name="array"/>.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetFloatArray( string name, float[] array, int index, int count )
 		{
@@ -399,6 +544,14 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
 		}
 
+		/// <summary>
+		/// Reads multiple <see cref="float"/> telemetry values into an array using a cached datum definition.
+		/// </summary>
+		/// <param name="datum">The telemetry datum to read.</param>
+		/// <param name="array">The destination array.</param>
+		/// <param name="index">The destination array index.</param>
+		/// <param name="count">The number of elements to read.</param>
+		/// <returns>The number of elements copied into <paramref name="array"/>.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetFloatArray( IRacingSdkDatum datum, float[] array, int index, int count )
 		{
@@ -409,6 +562,12 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadArray( Offset + datum.Offset, array, index, count );
 		}
 
+		/// <summary>
+		/// Reads a <see cref="double"/> telemetry value by variable name.
+		/// </summary>
+		/// <param name="name">The telemetry variable name.</param>
+		/// <param name="index">The zero-based element index for array values.</param>
+		/// <returns>The requested <see cref="double"/> value.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public double GetDouble( string name, int index = 0 )
 		{
@@ -419,6 +578,12 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadDouble( Offset + TelemetryDataProperties[ name ].Offset + index * 8 );
 		}
 
+		/// <summary>
+		/// Reads a <see cref="double"/> telemetry value using a cached datum definition.
+		/// </summary>
+		/// <param name="datum">The telemetry datum to read.</param>
+		/// <param name="index">The zero-based element index for array values.</param>
+		/// <returns>The requested <see cref="double"/> value.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public double GetDouble( IRacingSdkDatum datum, int index = 0 )
 		{
@@ -429,6 +594,14 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadDouble( Offset + datum.Offset + index * 8 );
 		}
 
+		/// <summary>
+		/// Reads multiple <see cref="double"/> telemetry values into an array by variable name.
+		/// </summary>
+		/// <param name="name">The telemetry variable name.</param>
+		/// <param name="array">The destination array.</param>
+		/// <param name="index">The destination array index.</param>
+		/// <param name="count">The number of elements to read.</param>
+		/// <returns>The number of elements copied into <paramref name="array"/>.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetDoubleArray( string name, double[] array, int index, int count )
 		{
@@ -439,6 +612,14 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
 		}
 
+		/// <summary>
+		/// Reads multiple <see cref="double"/> telemetry values into an array using a cached datum definition.
+		/// </summary>
+		/// <param name="datum">The telemetry datum to read.</param>
+		/// <param name="array">The destination array.</param>
+		/// <param name="index">The destination array index.</param>
+		/// <param name="count">The number of elements to read.</param>
+		/// <returns>The number of elements copied into <paramref name="array"/>.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetDoubleArray( IRacingSdkDatum datum, double[] array, int index, int count )
 		{
@@ -449,6 +630,12 @@ namespace IRSDKSharper
 			return memoryMappedViewAccessor.ReadArray( Offset + datum.Offset, array, index, count );
 		}
 
+		/// <summary>
+		/// Reads a telemetry value by variable name and returns it as its runtime type.
+		/// </summary>
+		/// <param name="name">The telemetry variable name.</param>
+		/// <param name="index">The zero-based element index for array values.</param>
+		/// <returns>The requested value boxed as its native telemetry type.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public object GetValue( string name, int index = 0 )
 		{
@@ -470,6 +657,12 @@ namespace IRSDKSharper
 			};
 		}
 
+		/// <summary>
+		/// Reads a telemetry value using a cached datum definition and returns it as its runtime type.
+		/// </summary>
+		/// <param name="datum">The telemetry datum to read.</param>
+		/// <param name="index">The zero-based element index for array values.</param>
+		/// <returns>The requested value boxed as its native telemetry type.</returns>
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public object GetValue( IRacingSdkDatum datum, int index = 0 )
 		{
@@ -602,10 +795,20 @@ namespace IRSDKSharper
 							}
 							else if ( ch != ' ' )
 							{
-								stringBuilder.Append( '\'' );
-
 								keyTracker.addFirstQuote = false;
-								keyTracker.addSecondQuote = true;
+
+								if ( ( ch == '\'' ) || ( ch == '"' ) )
+								{
+									keyTracker.ignoreUntilNextLine = true;
+
+									keyTrackersIgnoringUntilNextLine++;
+								}
+								else
+								{
+									stringBuilder.Append( '\'' );
+
+									keyTracker.addSecondQuote = true;
+								}
 							}
 						}
 						else if ( keyTracker.addSecondQuote )

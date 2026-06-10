@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace IRSDKSharper
 {
+	/// <summary>
+	/// Represents the parsed session information YAML payload exposed by iRacing.
+	/// </summary>
 	public class IRacingSdkSessionInfo
 	{
 		public WeekendInfoModel WeekendInfo { get; set; }
@@ -15,6 +18,9 @@ namespace IRSDKSharper
 
 		public CarSetupModel CarSetup { get; set; }
 
+		/// <summary>
+		/// Represents general event, track, and build metadata for the current session.
+		/// </summary>
 		public class WeekendInfoModel
 		{
 			public string TrackName { get; set; }
@@ -76,6 +82,9 @@ namespace IRSDKSharper
 			public WeekendOptionsModel WeekendOptions { get; set; }
 			public TelemetryOptionsModel TelemetryOptions { get; set; }
 
+			/// <summary>
+			/// Represents weekend rules and environmental options.
+			/// </summary>
 			public class WeekendOptionsModel
 			{
 				public int NumStarters { get; set; }
@@ -108,6 +117,9 @@ namespace IRSDKSharper
 				public string GreenWhiteCheckeredLimit { get; set; }
 			}
 
+			/// <summary>
+			/// Represents telemetry recording options.
+			/// </summary>
 			public class TelemetryOptionsModel
 			{
 				public string TelemetryDiskFile { get; set; }
@@ -115,12 +127,18 @@ namespace IRSDKSharper
 
 		}
 
+		/// <summary>
+		/// Represents the list of sessions and their results.
+		/// </summary>
 		public class SessionInfoModel
 		{
 			public int CurrentSessionNum { get; set; }
 
 			public List<SessionModel> Sessions { get; set; }
 
+			/// <summary>
+			/// Represents a single session entry.
+			/// </summary>
 			public class SessionModel
 			{
 				public int SessionNum { get; set; }
@@ -145,6 +163,9 @@ namespace IRSDKSharper
 				public List<FastestLapModel> ResultsFastestLap { get; set; }
 				public List<QualifyPositionModel> QualifyPositions { get; set; }
 
+				/// <summary>
+				/// Represents a classified result position.
+				/// </summary>
 				public class PositionModel
 				{
 					public int Position { get; set; }
@@ -164,6 +185,9 @@ namespace IRSDKSharper
 					public string ReasonOutStr { get; set; }
 				}
 
+				/// <summary>
+				/// Represents a fastest-lap result entry.
+				/// </summary>
 				public class FastestLapModel
 				{
 					public int CarIdx { get; set; }
@@ -171,6 +195,9 @@ namespace IRSDKSharper
 					public float FastestTime { get; set; }
 				}
 
+				/// <summary>
+				/// Represents a qualifying position entry.
+				/// </summary>
 				public class QualifyPositionModel
 				{
 					public int Position { get; set; }
@@ -182,10 +209,16 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Represents qualifying results reported outside the main session list.
+		/// </summary>
 		public class QualifyResultsInfoModel
 		{
 			public List<ResultModel> Results { get; set; }
 
+			/// <summary>
+			/// Represents a qualifying result row.
+			/// </summary>
 			public class ResultModel
 			{
 				public int Position { get; set; }
@@ -196,10 +229,16 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Represents available camera groups and cameras.
+		/// </summary>
 		public class CameraInfoModel
 		{
 			public List<GroupModel> Groups { get; set; }
 
+			/// <summary>
+			/// Represents a camera group.
+			/// </summary>
 			public class GroupModel
 			{
 				public int GroupNum { get; set; }
@@ -208,6 +247,9 @@ namespace IRSDKSharper
 
 				public List<CameraModel> Cameras { get; set; }
 
+				/// <summary>
+				/// Represents a single camera within a group.
+				/// </summary>
 				public class CameraModel
 				{
 					public int CameraNum { get; set; }
@@ -216,12 +258,18 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Represents radio configuration and available frequencies.
+		/// </summary>
 		public class RadioInfoModel
 		{
 			public int SelectedRadioNum { get; set; }
 
 			public List<RadioModel> Radios { get; set; }
 
+			/// <summary>
+			/// Represents a radio device.
+			/// </summary>
 			public class RadioModel
 			{
 				public int RadioNum { get; set; }
@@ -232,6 +280,9 @@ namespace IRSDKSharper
 
 				public List<FrequencyModel> Frequencies { get; set; }
 
+				/// <summary>
+				/// Represents a radio frequency entry.
+				/// </summary>
 				public class FrequencyModel
 				{
 					public int FrequencyNum { get; set; }
@@ -249,6 +300,9 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Represents information about the player's car and all drivers in the session.
+		/// </summary>
 		public class DriverInfoModel
 		{
 			public int DriverCarIdx { get; set; }
@@ -284,12 +338,18 @@ namespace IRSDKSharper
 			public List<DriverTireModel> DriverTires { get; set; }
 			public List<DriverModel> Drivers { get; set; }
 
+			/// <summary>
+			/// Represents an available tire compound.
+			/// </summary>
 			public class DriverTireModel
 			{
 				public int TireIndex {  get; set; }
 				public string TireCompoundType { get; set; }
 			}
 
+			/// <summary>
+			/// Represents a driver or team entry.
+			/// </summary>
 			public class DriverModel
 			{
 				public int CarIdx { get; set; }
@@ -347,10 +407,16 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Represents track split and sector metadata.
+		/// </summary>
 		public class SplitTimeInfoModel
 		{
 			public List<SectorModel> Sectors { get; set; }
 
+			/// <summary>
+			/// Represents a split-time sector.
+			/// </summary>
 			public class SectorModel
 			{
 				public int SectorNum { get; set; }
@@ -358,6 +424,9 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Represents the current garage setup payload.
+		/// </summary>
 		public class CarSetupModel
 		{
 			public int UpdateCount { get; set; }
@@ -367,6 +436,9 @@ namespace IRSDKSharper
 			public DrivetrainModel Drivetrain { get; set; }
 			public SuspensionModel Suspension { get; set; }
 
+			/// <summary>
+			/// Represents tire setup values.
+			/// </summary>
 			public class TireModel
 			{
 				public TireTypeModel TireType { get; set; }
@@ -375,11 +447,17 @@ namespace IRSDKSharper
 				public RightTireModel RightFront { get; set; }
 				public RightTireModel RightRear { get; set; }
 
+				/// <summary>
+				/// Represents the selected tire compound.
+				/// </summary>
 				public class TireTypeModel
 				{
 					public string TireType { get; set; }
 				}
 
+				/// <summary>
+				/// Represents setup values for a left-side tire.
+				/// </summary>
 				public class LeftTireModel
 				{
 					public string StartingPressure { get; set; }
@@ -389,6 +467,9 @@ namespace IRSDKSharper
 					public string TreadRemaining { get; set; }
 				}
 
+				/// <summary>
+				/// Represents setup values for a right-side tire.
+				/// </summary>
 				public class RightTireModel
 				{
 					public string ColdPressure { get; set; }
@@ -399,6 +480,9 @@ namespace IRSDKSharper
 				}
 			}
 
+			/// <summary>
+			/// Represents chassis setup values.
+			/// </summary>
 			public class ChassisModel
 			{
 				public FrontModel Front { get; set; }
@@ -594,11 +678,17 @@ namespace IRSDKSharper
 				}
 			}
 
+			/// <summary>
+			/// Represents drivetrain setup values.
+			/// </summary>
 			public class DrivetrainModel
 			{
 				public DifferentialModel Differential { get; set; }
 				public TransmissionModel Transmission { get; set; }
 
+				/// <summary>
+				/// Represents differential setup values.
+				/// </summary>
 				public class DifferentialModel
 				{
 					public string ClutchPlates { get; set; }
@@ -607,6 +697,9 @@ namespace IRSDKSharper
 					public string Preload { get; set; }
 				}
 
+				/// <summary>
+				/// Represents transmission setup values.
+				/// </summary>
 				public class TransmissionModel
 				{
 					public string FifthGear { get; set; }
@@ -618,6 +711,9 @@ namespace IRSDKSharper
 				}
 			}
 
+			/// <summary>
+			/// Represents suspension setup values.
+			/// </summary>
 			public class SuspensionModel
 			{
 				public FrontModel Front { get; set; }

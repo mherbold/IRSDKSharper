@@ -11,19 +11,43 @@ using Microsoft.Win32.SafeHandles;
 
 namespace IRSDKSharper
 {
+	/// <summary>
+	/// Provides access to the iRacing shared memory feed and broadcast message API.
+	/// </summary>
 	public class IRacingSdk
 	{
 		private const string SimulatorMemoryMappedFileName = "Local\\IRSDKMemMapFileName";
 		private const string SimulatorDataValidEventName = "Local\\IRSDKDataValidEvent";
 		private const string SimulatorBroadcastMessageName = "IRSDK_BROADCASTMSG";
 
+		/// <summary>
+		/// Gets the current telemetry and session data cache.
+		/// </summary>
 		public readonly IRacingSdkData Data;
 
+		/// <summary>
+		/// Gets a value indicating whether the background connection logic has been started.
+		/// </summary>
 		public bool IsStarted { get; private set; } = false;
+
+		/// <summary>
+		/// Gets a value indicating whether the library is currently receiving valid simulator updates.
+		/// </summary>
 		public bool IsConnected { get; private set; } = false;
 
+		/// <summary>
+		/// Gets or sets the minimum number of simulator ticks between <see cref="OnTelemetryData"/> callbacks.
+		/// </summary>
 		public int UpdateInterval { get; set; } = 1;
 
+		/// <summary>
+		/// Gets or sets the delay, in milliseconds, between connection attempts while waiting for iRacing to start.
+		/// </summary>
+		public int ConnectionCheckIntervalInMS { get; set; } = 500;
+
+		/// <summary>
+		/// Gets or sets a value indicating whether session info refreshes should be temporarily suppressed.
+		/// </summary>
 		public bool PauseSessionInfoUpdates
 		{
 			get => pauseSessionInfoUpdates;
@@ -44,16 +68,54 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Gets the optional event system used to record and replay tracked values.
+		/// </summary>
 		public EventSystem EventSystem { get; private set; }
 
+		/// <summary>
+		/// Occurs when a background processing loop throws an exception.
+		/// </summary>
 		public event Action<Exception> OnException = null;
+
+		/// <summary>
+		/// Occurs when the library detects that the simulator is sending valid data.
+		/// </summary>
 		public event Action OnConnected = null;
+
+		/// <summary>
+		/// Occurs when simulator updates stop arriving.
+		/// </summary>
 		public event Action OnDisconnected = null;
+
+		/// <summary>
+		/// Occurs after a new session info YAML payload has been parsed successfully.
+		/// </summary>
 		public event Action OnSessionInfo = null;
+
+		/// <summary>
+		/// Occurs when a telemetry update passes the <see cref="UpdateInterval"/> filter.
+		/// </summary>
 		public event Action OnTelemetryData = null;
+
+		/// <summary>
+		/// Occurs when the optional event system resets its cached state.
+		/// </summary>
 		public event Action OnEventSystemDataReset = null;
+
+		/// <summary>
+		/// Occurs after the optional event system loads recorded data from disk.
+		/// </summary>
 		public event Action OnEventSystemDataLoaded = null;
+
+		/// <summary>
+		/// Occurs after <see cref="Stop"/> finishes cleaning up background state.
+		/// </summary>
 		public event Action OnStopped = null;
+
+		/// <summary>
+		/// Occurs when a debug log message is emitted.
+		/// </summary>
 		public event Action<string> OnDebugLog = null;
 
 		private int keepThreadsAlive = 0;
@@ -77,22 +139,25 @@ namespace IRSDKSharper
 		private readonly uint simulatorBroadcastWindowMessage = WinApi.RegisterWindowMessage( SimulatorBroadcastMessageName );
 
 		/// <summary>
-		/// <para>Welcome to IRSDKSharper!</para>
-		/// This is the basic process to start it up:
+		/// Initializes a new instance of the <see cref="IRacingSdk"/> class.
+		/// <para>Typical startup flow:</para>
 		/// <code>
-		/// var irsdk = new IRacingSDK();
-		/// 
+		/// var irsdk = new IRacingSdk();
+		///
 		/// irsdk.OnException += OnException;
 		/// irsdk.OnConnected += OnConnected;
 		/// irsdk.OnDisconnected += OnDisconnected;
 		/// irsdk.OnSessionInfo += OnSessionInfo;
 		/// irsdk.OnTelemetryData += OnTelemetryData;
 		/// irsdk.OnStopped += OnStopped;
-		/// 
+		///
 		/// irsdk.Start();
 		/// </code>
 		/// </summary>
-		/// <param name="throwYamlExceptions">Set this to true to throw exceptions when our IRacingSdkSessionInfo class is missing properties that exist in the YAML data string.</param>
+		/// <param name="throwYamlExceptions">
+		/// <see langword="true"/> to rethrow YAML parsing failures when the session info payload contains unmapped properties; otherwise unmatched properties are ignored.
+		/// </param>
+		/// <param name="enableEventSystem"><see langword="true"/> to create the optional <see cref="EventSystem"/> instance.</param>
 		public IRacingSdk( bool throwYamlExceptions = false, bool enableEventSystem = false )
 		{
 			Data = new IRacingSdkData( throwYamlExceptions );
@@ -103,6 +168,9 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Starts the background threads that monitor the simulator connection and process telemetry.
+		/// </summary>
 		public void Start()
 		{
 			if ( Interlocked.Exchange( ref keepThreadsAlive, 1 ) == 1 )
@@ -128,6 +196,9 @@ namespace IRSDKSharper
 			}
 		}
 
+		/// <summary>
+		/// Stops the background threads and clears the current connection state.
+		/// </summary>
 		public void Stop()
 		{
 			if ( Interlocked.Exchange( ref keepThreadsAlive, 0 ) == 0 )
@@ -198,18 +269,25 @@ namespace IRSDKSharper
 		}
 
 		/// <summary>
-		/// This event system feature is currently experimental.
+		/// Sets the directory used by the optional event system to store or load recorded event data.
 		/// </summary>
+		/// <param name="directory">The target directory, or <see langword="null"/> to clear the current directory.</param>
 		public void SetEventSystemDirectory( string directory )
 		{
 			EventSystem?.SetDirectory( directory ?? string.Empty );
 		}
 
+		/// <summary>
+		/// Raises <see cref="OnEventSystemDataReset"/>.
+		/// </summary>
 		public void FireOnEventSystemDataReset()
 		{
 			OnEventSystemDataReset?.Invoke();
 		}
 
+		/// <summary>
+		/// Raises <see cref="OnEventSystemDataLoaded"/>.
+		/// </summary>
 		public void FireOnEventSystemDataLoaded()
 		{
 			OnEventSystemDataLoaded?.Invoke();
@@ -217,6 +295,13 @@ namespace IRSDKSharper
 
 		#region simulator remote control
 
+		/// <summary>
+		/// Switches the active camera using a car position identifier.
+		/// </summary>
+		/// <param name="camSwitchMode">The camera switching mode to use.</param>
+		/// <param name="carPosition">The target car position when <paramref name="camSwitchMode"/> is <see cref="IRacingSdkEnum.CamSwitchMode.FocusAtDriver"/>.</param>
+		/// <param name="group">The camera group number.</param>
+		/// <param name="camera">The camera number within the selected group.</param>
 		public void CamSwitchPos( IRacingSdkEnum.CamSwitchMode camSwitchMode, int carPosition, int group, int camera )
 		{
 			if ( camSwitchMode != IRacingSdkEnum.CamSwitchMode.FocusAtDriver )
@@ -227,6 +312,13 @@ namespace IRSDKSharper
 			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.CamSwitchPos, (short) carPosition, (short) group, (short) camera );
 		}
 
+		/// <summary>
+		/// Switches the active camera using a raw car number identifier.
+		/// </summary>
+		/// <param name="camSwitchMode">The camera switching mode to use.</param>
+		/// <param name="carNumberRaw">The target raw car number when <paramref name="camSwitchMode"/> is <see cref="IRacingSdkEnum.CamSwitchMode.FocusAtDriver"/>.</param>
+		/// <param name="group">The camera group number.</param>
+		/// <param name="camera">The camera number within the selected group.</param>
 		public void CamSwitchNum( IRacingSdkEnum.CamSwitchMode camSwitchMode, int carNumberRaw, int group, int camera )
 		{
 			if ( camSwitchMode != IRacingSdkEnum.CamSwitchMode.FocusAtDriver )
@@ -237,61 +329,116 @@ namespace IRSDKSharper
 			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.CamSwitchNum, (short) carNumberRaw, (short) group, (short) camera );
 		}
 
+		/// <summary>
+		/// Sets the current camera state flags.
+		/// </summary>
+		/// <param name="cameraState">The camera state flags to apply.</param>
 		public void CamSetState( IRacingSdkEnum.CameraState cameraState )
 		{
 			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.CamSetState, (short) cameraState );
 		}
 
+		/// <summary>
+		/// Sets the replay playback speed.
+		/// </summary>
+		/// <param name="speed">The requested playback speed multiplier.</param>
+		/// <param name="slowMotion"><see langword="true"/> to play in slow motion.</param>
 		public void ReplaySetPlaySpeed( int speed, bool slowMotion )
 		{
 			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.ReplaySetPlaySpeed, (short) speed, slowMotion ? 1 : 0 );
 		}
 
+		/// <summary>
+		/// Moves replay playback to a new frame position.
+		/// </summary>
+		/// <param name="rpyPosMode">The positioning mode to use.</param>
+		/// <param name="frameNumber">The target frame number for modes that require it.</param>
 		public void ReplaySetPlayPosition( IRacingSdkEnum.RpyPosMode rpyPosMode, int frameNumber )
 		{
 			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.ReplaySetPlayPosition, (short) rpyPosMode, frameNumber );
 		}
 
+		/// <summary>
+		/// Searches the replay using one of the built-in navigation modes.
+		/// </summary>
+		/// <param name="rpySrchMode">The search mode to execute.</param>
 		public void ReplaySearch( IRacingSdkEnum.RpySrchMode rpySrchMode )
 		{
 			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.ReplaySearch, (short) rpySrchMode );
 		}
 
+		/// <summary>
+		/// Sets the replay state.
+		/// </summary>
+		/// <param name="rpyStateMode">The replay state command.</param>
 		public void ReplaySetState( IRacingSdkEnum.RpyStateMode rpyStateMode )
 		{
 			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.ReplaySetState, (short) rpyStateMode );
 		}
 
+		/// <summary>
+		/// Requests a texture reload.
+		/// </summary>
+		/// <param name="reloadTexturesMode">The texture reload mode.</param>
+		/// <param name="carIdx">The car index used when reloading a specific car.</param>
 		public void ReloadTextures( IRacingSdkEnum.ReloadTexturesMode reloadTexturesMode, int carIdx )
 		{
 			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.ReloadTextures, (short) reloadTexturesMode, carIdx );
 		}
 
+		/// <summary>
+		/// Sends a chat command to the simulator.
+		/// </summary>
+		/// <param name="chatCommandMode">The chat command mode.</param>
+		/// <param name="subCommand">The chat sub-command value.</param>
 		public void ChatComand( IRacingSdkEnum.ChatCommandMode chatCommandMode, int subCommand )
 		{
 			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.ChatComand, (short) chatCommandMode, subCommand );
 		}
 
+		/// <summary>
+		/// Sends a pit command to the simulator.
+		/// </summary>
+		/// <param name="pitCommandMode">The pit command mode.</param>
+		/// <param name="parameter">The command parameter value.</param>
 		public void PitCommand( IRacingSdkEnum.PitCommandMode pitCommandMode, int parameter )
 		{
 			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.PitCommand, (short) pitCommandMode, parameter );
 		}
 
+		/// <summary>
+		/// Starts, stops, or restarts telemetry logging in the simulator.
+		/// </summary>
+		/// <param name="telemCommandMode">The telemetry command to send.</param>
 		public void TelemCommand( IRacingSdkEnum.TelemCommandMode telemCommandMode )
 		{
 			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.TelemCommand, (short) telemCommandMode );
 		}
 
+		/// <summary>
+		/// Sends a force-feedback command to the simulator.
+		/// </summary>
+		/// <param name="ffbCommandMode">The force-feedback command mode.</param>
+		/// <param name="value">The command value.</param>
 		public void FFBCommand( IRacingSdkEnum.FFBCommandMode ffbCommandMode, float value )
 		{
 			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.FFBCommand, (short) ffbCommandMode, value );
 		}
 
+		/// <summary>
+		/// Searches replay data using session time.
+		/// </summary>
+		/// <param name="sessionNum">The session number to search within.</param>
+		/// <param name="sessionTimeMS">The target session time, in milliseconds.</param>
 		public void ReplaySearchSessionTime( int sessionNum, int sessionTimeMS )
 		{
 			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.ReplaySearchSessionTime, (short) sessionNum, sessionTimeMS );
 		}
 
+		/// <summary>
+		/// Controls screenshot and video capture actions.
+		/// </summary>
+		/// <param name="videoCaptureMode">The capture command to send.</param>
 		public void VideoCapture( IRacingSdkEnum.VideoCaptureMode videoCaptureMode )
 		{
 			BroadcastMessage( IRacingSdkEnum.BroadcastMsg.VideoCapture, (short) videoCaptureMode );
@@ -423,7 +570,7 @@ namespace IRSDKSharper
 						}
 					}
 
-					Thread.Sleep( 500 );
+					Thread.Sleep( ConnectionCheckIntervalInMS );
 				}
 
 				connectionLoopRunning = false;
@@ -576,6 +723,10 @@ namespace IRSDKSharper
 
 		#region Debug logging
 
+		/// <summary>
+		/// Emits a debug log message when the library is built in <c>DEBUG</c> configuration.
+		/// </summary>
+		/// <param name="message">The message to publish.</param>
 		[Conditional( "DEBUG" )]
 		public void Log( string message )
 		{

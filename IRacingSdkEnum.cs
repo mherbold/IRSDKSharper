@@ -3,13 +3,22 @@ using System;
 
 namespace IRSDKSharper
 {
+	/// <summary>
+	/// Groups enums used by the iRacing SDK shared memory and broadcast APIs.
+	/// </summary>
 	public class IRacingSdkEnum
 	{
+		/// <summary>
+		/// Defines status flag bit positions in the shared memory header.
+		/// </summary>
 		public enum StatusField
 		{
 			StConnected = 1
 		}
 
+		/// <summary>
+		/// Defines the primitive data types used by telemetry variables.
+		/// </summary>
 		public enum VarType
 		{
 			Char = 0,
@@ -20,6 +29,9 @@ namespace IRSDKSharper
 			Double
 		};
 
+		/// <summary>
+		/// Defines engine warning bit flags.
+		/// </summary>
 		[Flags]
 		public enum EngineWarnings : uint
 		{
@@ -32,6 +44,9 @@ namespace IRSDKSharper
 			OilTempWarning = 0x40
 		};
 
+		/// <summary>
+		/// Defines session flag bit fields reported by the simulator.
+		/// </summary>
 		[Flags]
 		public enum Flags : uint
 		{
@@ -62,6 +77,9 @@ namespace IRSDKSharper
 			StartGo = 0x80000000
 		};
 
+		/// <summary>
+		/// Defines track location states for a car.
+		/// </summary>
 		public enum TrkLoc
 		{
 			NotInWorld = -1,
@@ -71,6 +89,9 @@ namespace IRSDKSharper
 			OnTrack
 		};
 
+		/// <summary>
+		/// Defines track surface material identifiers.
+		/// </summary>
 		public enum TrkSurf
 		{
 			SurfaceNotInWorld = -1,
@@ -104,6 +125,9 @@ namespace IRSDKSharper
 			AstroturfMaterial
 		};
 
+		/// <summary>
+		/// Defines session state values.
+		/// </summary>
 		public enum SessionState
 		{
 			Invalid,
@@ -115,6 +139,9 @@ namespace IRSDKSharper
 			CoolDown
 		};
 
+		/// <summary>
+		/// Defines spotter left/right proximity states.
+		/// </summary>
 		public enum CarLeftRight
 		{
 			Off,
@@ -126,6 +153,9 @@ namespace IRSDKSharper
 			TwoCarsRight
 		};
 
+		/// <summary>
+		/// Defines camera state bit flags.
+		/// </summary>
 		[Flags]
 		public enum CameraState : uint
 		{
@@ -140,6 +170,9 @@ namespace IRSDKSharper
 			UseMouseAimMode = 0x0100
 		};
 
+		/// <summary>
+		/// Defines pit service request flags.
+		/// </summary>
 		[Flags]
 		public enum PitSvFlags : uint
 		{
@@ -152,6 +185,9 @@ namespace IRSDKSharper
 			FastRepair = 0x0040
 		}
 
+		/// <summary>
+		/// Defines pit service status values.
+		/// </summary>
 		public enum PitSvStatus
 		{
 			None = 0,
@@ -165,6 +201,9 @@ namespace IRSDKSharper
 			CantFixThat
 		};
 
+		/// <summary>
+		/// Defines pacing modes.
+		/// </summary>
 		public enum PaceMode
 		{
 			SingleFileStart = 0,
@@ -174,6 +213,9 @@ namespace IRSDKSharper
 			NotPacing
 		};
 
+		/// <summary>
+		/// Defines track wetness levels.
+		/// </summary>
 		public enum TrackWetness
 		{
 			Unknown = 0,
@@ -186,6 +228,9 @@ namespace IRSDKSharper
 			ExtremelyWet
 		};
 
+		/// <summary>
+		/// Defines pacing flag bit fields.
+		/// </summary>
 		[Flags]
 		public enum PaceFlags : uint
 		{
@@ -194,6 +239,9 @@ namespace IRSDKSharper
 			WavedAround = 0x04
 		};
 
+		/// <summary>
+		/// Defines broadcast message identifiers sent to the simulator.
+		/// </summary>
 		public enum BroadcastMsg
 		{
 			CamSwitchPos = 0,
@@ -213,6 +261,9 @@ namespace IRSDKSharper
 			Last
 		};
 
+		/// <summary>
+		/// Defines chat broadcast command modes.
+		/// </summary>
 		public enum ChatCommandMode
 		{
 			Macro = 0,
@@ -221,6 +272,9 @@ namespace IRSDKSharper
 			Cancel
 		};
 
+		/// <summary>
+		/// Defines pit command modes.
+		/// </summary>
 		public enum PitCommandMode
 		{
 			Clear = 0,
@@ -237,6 +291,9 @@ namespace IRSDKSharper
 			ClearFuel
 		};
 
+		/// <summary>
+		/// Defines telemetry logging commands.
+		/// </summary>
 		public enum TelemCommandMode
 		{
 			Stop = 0,
@@ -244,18 +301,27 @@ namespace IRSDKSharper
 			Restart
 		};
 
+		/// <summary>
+		/// Defines replay state commands.
+		/// </summary>
 		public enum RpyStateMode
 		{
 			EraseTape = 0,
 			Last
 		};
 
+		/// <summary>
+		/// Defines texture reload commands.
+		/// </summary>
 		public enum ReloadTexturesMode
 		{
 			All = 0,
 			CarIdx
 		};
 
+		/// <summary>
+		/// Defines replay search commands.
+		/// </summary>
 		public enum RpySrchMode
 		{
 			ToStart = 0,
@@ -271,6 +337,9 @@ namespace IRSDKSharper
 			Last
 		};
 
+		/// <summary>
+		/// Defines replay positioning modes.
+		/// </summary>
 		public enum RpyPosMode
 		{
 			Begin = 0,
@@ -279,12 +348,18 @@ namespace IRSDKSharper
 			Last
 		};
 
+		/// <summary>
+		/// Defines force-feedback command modes.
+		/// </summary>
 		public enum FFBCommandMode
 		{
 			MaxForce = 0,
 			Last
 		};
 
+		/// <summary>
+		/// Defines camera switching targets.
+		/// </summary>
 		public enum CamSwitchMode
 		{
 			FocusAtIncident = -3,
@@ -293,6 +368,9 @@ namespace IRSDKSharper
 			FocusAtDriver = 0
 		};
 
+		/// <summary>
+		/// Defines screenshot and video capture commands.
+		/// </summary>
 		public enum VideoCaptureMode
 		{
 			TriggerScreenShot = 0,

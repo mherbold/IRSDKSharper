@@ -6,6 +6,9 @@ namespace IRSDKSharper
 {
 	public partial class EventSystem
 	{
+		/// <summary>
+		/// Gets or sets the minimum absolute g-force required before a calculated g-force event is recorded.
+		/// </summary>
 		public float MinimumGForce { get; set; } = 2.0f; // in g's
 
 		private IRacingSdkDatum carIdxLapDistPctDatum = new();

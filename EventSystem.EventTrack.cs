@@ -8,6 +8,9 @@ namespace IRSDKSharper
 {
 	public partial class EventSystem
 	{
+		/// <summary>
+		/// Represents a time-ordered series of recorded events for a single track.
+		/// </summary>
 		public abstract class EventTrack
 		{
 			public List<Event> Events { get; private set; } = new List<Event>();
@@ -27,6 +30,9 @@ namespace IRSDKSharper
 
 			private int eventIndex = 0;
 
+			/// <summary>
+			/// Gets the preferred recording interval, in seconds, for selected track names.
+			/// </summary>
 			public static Dictionary<string, int> TrackNamesAndDataRates { get; private set; } = new Dictionary<string, int>
 			{
 				{ "AirDensity", 60 },
@@ -77,6 +83,10 @@ namespace IRSDKSharper
 				{ "WindVel", 60 },
 			};
 
+			/// <summary>
+			/// Returns the track name.
+			/// </summary>
+			/// <returns>The event track name.</returns>
 			public override string ToString()
 			{
 				return trackName;
@@ -116,6 +126,12 @@ namespace IRSDKSharper
 				};
 			}
 
+			/// <summary>
+			/// Gets the most recent event at or before the specified session position.
+			/// </summary>
+			/// <param name="sessionNum">The session number to query.</param>
+			/// <param name="sessionTime">The session time, in seconds, to query.</param>
+			/// <returns>The matching event, or <see langword="null"/> if the track has no events.</returns>
 			public Event GetAt( int sessionNum, double sessionTime )
 			{
 				if ( Events.Count == 0 )
@@ -159,27 +175,64 @@ namespace IRSDKSharper
 				}
 			}
 
+			/// <summary>
+			/// Records a new value from the current SDK snapshot if the track changed.
+			/// </summary>
+			/// <param name="eventSystem">The owning event system.</param>
+			/// <param name="data">The current SDK data snapshot.</param>
+			/// <returns>The recorded event, or <see langword="null"/> when nothing changed.</returns>
 			public abstract Event Record( EventSystem eventSystem, IRacingSdkData data );
 
+			/// <summary>
+			/// Records a new value supplied directly by the caller if the track changed.
+			/// </summary>
+			/// <param name="eventSystem">The owning event system.</param>
+			/// <param name="newValueAsObject">The value to record.</param>
+			/// <returns>The recorded event, or <see langword="null"/> when nothing changed.</returns>
 			public abstract Event Record( EventSystem eventSystem, object newValueAsObject );
 
+			/// <summary>
+			/// Loads a previously recorded event from a binary stream.
+			/// </summary>
+			/// <param name="sessionNum">The session number for the event.</param>
+			/// <param name="sessionTime">The session time, in seconds, for the event.</param>
+			/// <param name="binaryReader">The binary reader positioned at the event value.</param>
 			public abstract void Load( int sessionNum, double sessionTime, BinaryReader binaryReader );
 		}
 
+		/// <summary>
+		/// Represents a strongly typed event track.
+		/// </summary>
+		/// <typeparam name="T">The event value type.</typeparam>
 		public class EventTrack<T> : EventTrack
 		{
 			private T value = default;
 
+			/// <summary>
+			/// Initializes a new instance of the <see cref="EventTrack{T}"/> class for a named track.
+			/// </summary>
+			/// <param name="trackName">The track name.</param>
+			/// <param name="varType">The track value type.</param>
 			public EventTrack( string trackName, IRacingSdkEnum.VarType varType ) : base( trackName, varType )
 			{
 				value = (T) GetDefaultValueAsObject();
 			}
 
+			/// <summary>
+			/// Initializes a new instance of the <see cref="EventTrack{T}"/> class for a telemetry datum.
+			/// </summary>
+			/// <param name="datum">The source telemetry datum.</param>
+			/// <param name="index">The zero-based element index for array values.</param>
 			public EventTrack( IRacingSdkDatum datum, int index ) : base( datum, index )
 			{
 				value = (T) GetDefaultValueAsObject();
 			}
 
+			/// <summary>
+			/// Initializes a new instance of the <see cref="EventTrack{T}"/> class for a non-telemetry value source.
+			/// </summary>
+			/// <param name="trackName">The track name.</param>
+			/// <param name="valueAsObject">The initial value used to infer the track type.</param>
 			public EventTrack( string trackName, object valueAsObject ) : base( trackName, valueAsObject )
 			{
 				value = (T) GetDefaultValueAsObject();
@@ -203,6 +256,12 @@ namespace IRSDKSharper
 				return defaultValue;
 			}
 
+			/// <summary>
+			/// Records a new event from telemetry data when the value changes.
+			/// </summary>
+			/// <param name="eventSystem">The owning event system.</param>
+			/// <param name="data">The current SDK data snapshot.</param>
+			/// <returns>The recorded event, or <see langword="null"/> when nothing changed.</returns>
 			public override Event Record( EventSystem eventSystem, IRacingSdkData data )
 			{
 				Event _event = null;
@@ -275,6 +334,12 @@ namespace IRSDKSharper
 				return _event;
 			}
 
+			/// <summary>
+			/// Records a new event from a supplied value when the value changes.
+			/// </summary>
+			/// <param name="eventSystem">The owning event system.</param>
+			/// <param name="newValueAsObject">The value to record.</param>
+			/// <returns>The recorded event, or <see langword="null"/> when nothing changed.</returns>
 			public override Event Record( EventSystem eventSystem, object newValueAsObject )
 			{
 				Event _event = null;
@@ -309,6 +374,12 @@ namespace IRSDKSharper
 				return _event;
 			}
 
+			/// <summary>
+			/// Loads a recorded event from a binary reader.
+			/// </summary>
+			/// <param name="sessionNum">The session number for the event.</param>
+			/// <param name="sessionTime">The session time, in seconds, for the event.</param>
+			/// <param name="binaryReader">The binary reader positioned at the event value.</param>
 			public override void Load( int sessionNum, double sessionTime, BinaryReader binaryReader )
 			{
 				object newValueAsObject;

@@ -5,6 +5,9 @@ namespace IRSDKSharper
 {
 	public partial class EventSystem
 	{
+		/// <summary>
+		/// Represents a value recorded at a specific session number and time.
+		/// </summary>
 		public abstract class Event
 		{
 			public int SessionNum { get; private set; }
@@ -12,6 +15,12 @@ namespace IRSDKSharper
 
 			protected readonly IRacingSdkDatum datum;
 
+			/// <summary>
+			/// Initializes a new instance of the <see cref="Event"/> class.
+			/// </summary>
+			/// <param name="sessionNum">The session number in which the event occurred.</param>
+			/// <param name="sessionTime">The session time, in seconds, at which the event occurred.</param>
+			/// <param name="datum">The source datum associated with the event, if any.</param>
 			public Event( int sessionNum, double sessionTime, IRacingSdkDatum datum )
 			{
 				SessionNum = sessionNum;
@@ -20,6 +29,9 @@ namespace IRSDKSharper
 				this.datum = datum;
 			}
 
+			/// <summary>
+			/// Gets the session time formatted as <c>hh:mm:ss.ffff</c>.
+			/// </summary>
 			public string SessionTimeAsString
 			{
 				get
@@ -28,13 +40,27 @@ namespace IRSDKSharper
 				}
 			}
 
+			/// <summary>
+			/// Gets the recorded value formatted for display.
+			/// </summary>
 			public abstract string ValueAsString { get; }
 		}
 
+		/// <summary>
+		/// Represents a strongly typed recorded event.
+		/// </summary>
+		/// <typeparam name="T">The event value type.</typeparam>
 		public class Event<T> : Event
 		{
 			public T Value { get; private set; }
 
+			/// <summary>
+			/// Initializes a new instance of the <see cref="Event{T}"/> class.
+			/// </summary>
+			/// <param name="sessionNum">The session number in which the event occurred.</param>
+			/// <param name="sessionTime">The session time, in seconds, at which the event occurred.</param>
+			/// <param name="value">The recorded value.</param>
+			/// <param name="datum">The source datum associated with the event, if any.</param>
 			public Event( int sessionNum, double sessionTime, T value, IRacingSdkDatum datum ) : base( sessionNum, sessionTime, datum )
 			{
 				Value = value;
