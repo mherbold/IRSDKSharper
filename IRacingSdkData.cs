@@ -738,6 +738,8 @@ namespace IRSDKSharper
 			const int MaxNumDrivers = 64;
 			const int MaxNumAdditionalBytesPerFixedKey = 2;
 
+			var yamlText = Encoding.UTF8.GetString( yaml );
+
 			var keysToFix = new string[]
 			{
 				"AbbrevName:", "TeamName:", "UserName:", "Initials:", "DriverSetupName:", "CarDesignStr:"
@@ -755,9 +757,9 @@ namespace IRSDKSharper
 
 			var keyTrackersIgnoringUntilNextLine = 0;
 
-			var stringBuilder = new StringBuilder( yaml.Length + keysToFix.Length * MaxNumAdditionalBytesPerFixedKey * MaxNumDrivers );
+			var stringBuilder = new StringBuilder( yamlText.Length + keysToFix.Length * MaxNumAdditionalBytesPerFixedKey * MaxNumDrivers );
 
-			foreach ( char ch in yaml )
+			foreach ( var ch in yamlText )
 			{
 				if ( keyTrackersIgnoringUntilNextLine == keyTrackers.Length )
 				{
