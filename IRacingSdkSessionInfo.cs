@@ -23,6 +23,7 @@ namespace IRSDKSharper
 		/// </summary>
 		public class WeekendInfoModel
 		{
+			public string Encoding { get; set; }
 			public string TrackName { get; set; }
 			public int TrackID { get; set; }
 			public string TrackLength { get; set; }
@@ -49,6 +50,7 @@ namespace IRSDKSharper
 			public string TrackSurfaceTempCrew { get; set; }
 			public string TrackAirTemp { get; set; }
 			public string TrackAirPressure { get; set; }
+			public string TrackAirDensity { get; set; }
 			public string TrackWindVel { get; set; }
 			public string TrackWindDir { get; set; }
 			public string TrackRelativeHumidity { get; set; }
@@ -78,6 +80,7 @@ namespace IRSDKSharper
 			public string BuildType { get; set; }
 			public string BuildTarget { get; set; }
 			public string BuildVersion { get; set; }
+			public string RaceFarm { get; set; }
 
 			public WeekendOptionsModel WeekendOptions { get; set; }
 			public TelemetryOptionsModel TelemetryOptions { get; set; }
@@ -113,6 +116,8 @@ namespace IRSDKSharper
 				public int HardcoreLevel { get; set; }
 				public int NumJokerLaps { get; set; }
 				public string IncidentLimit { get; set; }
+				public string IncidentWarningInitialLimit { get; set; }
+				public string IncidentWarningSubsequentLimit { get; set; }
 				public string FastRepairsLimit { get; set; }
 				public string GreenWhiteCheckeredLimit { get; set; }
 			}
@@ -308,6 +313,7 @@ namespace IRSDKSharper
 			public int DriverCarIdx { get; set; }
 			public int DriverUserID { get; set; }
 			public int PaceCarIdx { get; set; }
+			public int DriverIsAdmin { get; set; }
 			public float DriverHeadPosX { get; set; }
 			public float DriverHeadPosY { get; set; }
 			public float DriverHeadPosZ { get; set; }
@@ -321,6 +327,9 @@ namespace IRSDKSharper
 			public int DriverCarGearNumForward { get; set; }
 			public int DriverCarGearNeutral { get; set; }
 			public int DriverCarGearReverse { get; set; }
+			public string DriverGearboxType {  get; set; }
+			public string DriverGearboxControlType { get; set; }
+			public string DriverCarShiftAid { get; set; }
 			public float DriverCarSLFirstRPM { get; set; }
 			public float DriverCarSLShiftRPM { get; set; }
 			public float DriverCarSLLastRPM { get; set; }
@@ -472,6 +481,7 @@ namespace IRSDKSharper
 				/// </summary>
 				public class RightTireModel
 				{
+					public string StartingPressure { get; set; }
 					public string ColdPressure { get; set; }
 					public string LastHotPressure { get; set; }
 					public string LastTempsIMO { get; set; }
@@ -496,9 +506,12 @@ namespace IRSDKSharper
 
 				public class FrontModel
 				{
+					public string FrontBrakePadMu { get; set; }
+					public string HeadlightXTape { get; set; }
 					public string AttachLeftSide { get; set; }
 					public string ArbArms { get; set; }
 					public string ArbDiameter { get; set; }
+					public string ArbSetting { get; set; }
 					public string BallastForward { get; set; }
 					public string BarPreload { get; set; }
 					public string BrakeBalanceBar { get; set; }
