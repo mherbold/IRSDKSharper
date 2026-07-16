@@ -570,6 +570,7 @@ namespace IRSDKSharper
 					public string SpringPerch { get; set; }
 					public string SpringPerchOffset { get; set; }
 					public string SpringRate { get; set; }
+					public string SpringAngle { get; set; }
 					public string ToeIn { get; set; }
 				}
 
@@ -633,6 +634,7 @@ namespace IRSDKSharper
 					public string SpringPerch { get; set; }
 					public string SpringPerchOffset { get; set; }
 					public string SpringRate { get; set; }
+					public string SpringAngle { get; set; }
 					public string ToeIn { get; set; }
 				}
 
