@@ -49,36 +49,36 @@ namespace IRSDKSharper
 
 		private MemoryMappedViewAccessor memoryMappedViewAccessor = null;
 
-			/// <summary>
-			/// Initializes a new instance of the <see cref="IRacingSdkData"/> class.
-			/// </summary>
-			/// <param name="throwYamlExceptions"><see langword="true"/> to rethrow YAML parsing failures instead of scheduling a retry.</param>
-			/// <param name="ignoreUnmatchedYamlProperties"><see langword="true"/> to ignore unmatched properties during YAML deserialization; otherwise unmatched properties will cause parsing failures.</param>
-			public IRacingSdkData( bool throwYamlExceptions, bool ignoreUnmatchedYamlProperties )
+		/// <summary>
+		/// Initializes a new instance of the <see cref="IRacingSdkData"/> class.
+		/// </summary>
+		/// <param name="throwYamlExceptions"><see langword="true"/> to rethrow YAML parsing failures instead of scheduling a retry.</param>
+		/// <param name="ignoreUnmatchedYamlProperties"><see langword="true"/> to ignore unmatched properties during YAML deserialization; otherwise unmatched properties will cause parsing failures.</param>
+		public IRacingSdkData( bool throwYamlExceptions, bool ignoreUnmatchedYamlProperties )
+		{
+			this.throwYamlExceptions = throwYamlExceptions;
+
+			headerDataAsList = new IRacingSdkHeaderDataAsList( this );
+			sessionInfoAsList = new IRacingSdkSessionInfoAsList( this );
+			telemetryDataAsList = new IRacingSdkTelemetryDataAsList( this );
+
+#if !NET471 && !NET_UNITY_4_8
+
+			Encoding.RegisterProvider( CodePagesEncodingProvider.Instance );
+
+#endif
+
+			encoding = Encoding.GetEncoding( 1252 );
+
+			var deserializerBuilder = new DeserializerBuilder();
+
+			if ( ignoreUnmatchedYamlProperties )
 			{
-				this.throwYamlExceptions = throwYamlExceptions;
-
-				headerDataAsList = new IRacingSdkHeaderDataAsList( this );
-				sessionInfoAsList = new IRacingSdkSessionInfoAsList( this );
-				telemetryDataAsList = new IRacingSdkTelemetryDataAsList( this );
-
-		#if !NET471 && !NET_UNITY_4_8
-
-				Encoding.RegisterProvider( CodePagesEncodingProvider.Instance );
-
-		#endif
-
-				encoding = Encoding.GetEncoding( 1252 );
-
-				var deserializerBuilder = new DeserializerBuilder();
-
-				if ( ignoreUnmatchedYamlProperties )
-				{
-					deserializerBuilder.IgnoreUnmatchedProperties();
-				}
-
-				deserializer = deserializerBuilder.Build();
+				deserializerBuilder.IgnoreUnmatchedProperties();
 			}
+
+			deserializer = deserializerBuilder.Build();
+		}
 
 		/// <summary>
 		/// Sets the memory-mapped view accessor used to read simulator data.
@@ -177,13 +177,13 @@ namespace IRSDKSharper
 						case "RRSHshockDefl_ST": name = "RRshockDefl_ST"; break;
 						case "RRSHshockVel": name = "RRshockVel"; break;
 						case "RRSHshockVel_ST": name = "RRshockVel_ST"; break;
-					};
+					}
 
 					switch ( unit )
 					{
 						case "irsdk_CarLeftRight": type = (int) IRacingSdkEnum.VarType.Int; break;
 						case "irsdk_PaceFlags": type = (int) IRacingSdkEnum.VarType.BitField; break;
-					};
+					}
 
 					#endregion
 
@@ -657,7 +657,7 @@ namespace IRSDKSharper
 				case IRacingSdkEnum.VarType.Float: return memoryMappedViewAccessor.ReadSingle( Offset + iRacingSdkDatum.Offset + index * 4 );
 				case IRacingSdkEnum.VarType.Double: return memoryMappedViewAccessor.ReadDouble( Offset + iRacingSdkDatum.Offset + index * 4 );
 				default: throw new Exception( "Unexpected type!" );
-			};
+			}
 		}
 
 		/// <summary>
@@ -682,7 +682,7 @@ namespace IRSDKSharper
 				case IRacingSdkEnum.VarType.Float: return memoryMappedViewAccessor.ReadSingle( Offset + datum.Offset + index * 4 );
 				case IRacingSdkEnum.VarType.Double: return memoryMappedViewAccessor.ReadDouble( Offset + datum.Offset + index * 4 );
 				default: throw new Exception( "Unexpected type!" );
-			};
+			}
 		}
 
 		[Conditional( "DEBUG" )]
