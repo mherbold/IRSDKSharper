@@ -155,12 +155,15 @@ namespace IRSDKSharper
 		/// </code>
 		/// </summary>
 		/// <param name="throwYamlExceptions">
-		/// <see langword="true"/> to rethrow YAML parsing failures when the session info payload contains unmapped properties; otherwise unmatched properties are ignored.
+		/// <see langword="true"/> to rethrow YAML parsing failures instead of scheduling a retry; otherwise exceptions are suppressed and a retry is scheduled.
+		/// </param>
+		/// <param name="ignoreUnmatchedYamlProperties">
+		/// <see langword="true"/> to ignore unmatched properties during YAML deserialization; otherwise unmatched properties will cause parsing failures.
 		/// </param>
 		/// <param name="enableEventSystem"><see langword="true"/> to create the optional <see cref="EventSystem"/> instance.</param>
-		public IRacingSdk( bool throwYamlExceptions = false, bool enableEventSystem = false )
+		public IRacingSdk( bool throwYamlExceptions = false, bool ignoreUnmatchedYamlProperties = true, bool enableEventSystem = false )
 		{
-			Data = new IRacingSdkData( throwYamlExceptions );
+			Data = new IRacingSdkData( throwYamlExceptions, ignoreUnmatchedYamlProperties );
 
 			if ( enableEventSystem )
 			{

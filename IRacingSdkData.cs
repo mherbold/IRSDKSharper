@@ -49,33 +49,36 @@ namespace IRSDKSharper
 
 		private MemoryMappedViewAccessor memoryMappedViewAccessor = null;
 
-		/// <summary>
-		/// Initializes a new instance of the <see cref="IRacingSdkData"/> class.
-		/// </summary>
-		/// <param name="throwYamlExceptions"><see langword="true"/> to rethrow YAML parsing failures instead of scheduling a retry.</param>
-		public IRacingSdkData( bool throwYamlExceptions )
-		{
-			this.throwYamlExceptions = throwYamlExceptions;
-
-			headerDataAsList = new IRacingSdkHeaderDataAsList( this );
-			sessionInfoAsList = new IRacingSdkSessionInfoAsList( this );
-			telemetryDataAsList = new IRacingSdkTelemetryDataAsList( this );
-
-#if !NET471 && !NET_UNITY_4_8
-			Encoding.RegisterProvider( CodePagesEncodingProvider.Instance );
-#endif
-
-			encoding = Encoding.GetEncoding( 1252 );
-
-			var deserializerBuilder = new DeserializerBuilder();
-
-			if ( !throwYamlExceptions )
+			/// <summary>
+			/// Initializes a new instance of the <see cref="IRacingSdkData"/> class.
+			/// </summary>
+			/// <param name="throwYamlExceptions"><see langword="true"/> to rethrow YAML parsing failures instead of scheduling a retry.</param>
+			/// <param name="ignoreUnmatchedYamlProperties"><see langword="true"/> to ignore unmatched properties during YAML deserialization; otherwise unmatched properties will cause parsing failures.</param>
+			public IRacingSdkData( bool throwYamlExceptions, bool ignoreUnmatchedYamlProperties )
 			{
-				deserializerBuilder.IgnoreUnmatchedProperties();
-			}
+				this.throwYamlExceptions = throwYamlExceptions;
 
-			deserializer = deserializerBuilder.Build();
-		}
+				headerDataAsList = new IRacingSdkHeaderDataAsList( this );
+				sessionInfoAsList = new IRacingSdkSessionInfoAsList( this );
+				telemetryDataAsList = new IRacingSdkTelemetryDataAsList( this );
+
+		#if !NET471 && !NET_UNITY_4_8
+
+				Encoding.RegisterProvider( CodePagesEncodingProvider.Instance );
+
+		#endif
+
+				encoding = Encoding.GetEncoding( 1252 );
+
+				var deserializerBuilder = new DeserializerBuilder();
+
+				if ( ignoreUnmatchedYamlProperties )
+				{
+					deserializerBuilder.IgnoreUnmatchedProperties();
+				}
+
+				deserializer = deserializerBuilder.Build();
+			}
 
 		/// <summary>
 		/// Sets the memory-mapped view accessor used to read simulator data.
@@ -733,12 +736,13 @@ namespace IRSDKSharper
 			public bool addSecondQuote = false;
 		}
 
-		private static string FixInvalidYaml( byte[] yaml )
+		private string FixInvalidYaml( byte[] yaml )
 		{
 			const int MaxNumDrivers = 64;
 			const int MaxNumAdditionalBytesPerFixedKey = 2;
 
-			var yamlText = Encoding.UTF8.GetString( yaml );
+			// iRacing declares the session info encoding as ISO-8859-1 (WeekendInfo.Encoding) - decoding it as UTF-8 would turn extended characters into U+FFFD
+			var yamlText = encoding.GetString( yaml );
 
 			var keysToFix = new string[]
 			{
