@@ -21,16 +21,16 @@ namespace IRSDKSharper
 		public string SessionInfoYaml { get; private set; } = string.Empty;
 		public IRacingSdkSessionInfo SessionInfo { get; private set; } = null;
 
-		public int Version => memoryMappedViewAccessor?.ReadInt32( 0 ) ?? 0;
-		public int Status => memoryMappedViewAccessor?.ReadInt32( 4 ) ?? 0;
-		public int TickRate => memoryMappedViewAccessor?.ReadInt32( 8 ) ?? 0;
-		public int SessionInfoUpdate => memoryMappedViewAccessor?.ReadInt32( 12 ) ?? 0;
-		public int SessionInfoLength => memoryMappedViewAccessor?.ReadInt32( 16 ) ?? 0;
-		public int SessionInfoOffset => memoryMappedViewAccessor?.ReadInt32( 20 ) ?? 0;
-		public int VarCount => memoryMappedViewAccessor?.ReadInt32( 24 ) ?? 0;
-		public int VarHeaderOffset => memoryMappedViewAccessor?.ReadInt32( 28 ) ?? 0;
-		public int BufferCount => memoryMappedViewAccessor?.ReadInt32( 32 ) ?? 0;
-		public int BufferLength => memoryMappedViewAccessor?.ReadInt32( 36 ) ?? 0;
+		public int Version => dataSource?.ReadInt32( 0 ) ?? 0;
+		public int Status => dataSource?.ReadInt32( 4 ) ?? 0;
+		public int TickRate => dataSource?.ReadInt32( 8 ) ?? 0;
+		public int SessionInfoUpdate => dataSource?.ReadInt32( 12 ) ?? 0;
+		public int SessionInfoLength => dataSource?.ReadInt32( 16 ) ?? 0;
+		public int SessionInfoOffset => dataSource?.ReadInt32( 20 ) ?? 0;
+		public int VarCount => dataSource?.ReadInt32( 24 ) ?? 0;
+		public int VarHeaderOffset => dataSource?.ReadInt32( 28 ) ?? 0;
+		public int BufferCount => dataSource?.ReadInt32( 32 ) ?? 0;
+		public int BufferLength => dataSource?.ReadInt32( 36 ) ?? 0;
 
 		public int TickCount { get; private set; } = -1;
 		public int Offset { get; private set; } = 0;
@@ -47,7 +47,7 @@ namespace IRSDKSharper
 		private readonly Encoding encoding;
 		private readonly IDeserializer deserializer;
 
-		private MemoryMappedViewAccessor memoryMappedViewAccessor = null;
+		private IRacingSdkDataSource dataSource = null;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="IRacingSdkData"/> class.
@@ -81,12 +81,22 @@ namespace IRSDKSharper
 		}
 
 		/// <summary>
+		/// Sets the data source used to read iRacing-formatted data.
+		/// </summary>
+		/// <param name="dataSource">The data source to read from.</param>
+		public void SetDataSource( IRacingSdkDataSource dataSource )
+		{
+			this.dataSource = dataSource;
+		}
+
+		/// <summary>
 		/// Sets the memory-mapped view accessor used to read simulator data.
 		/// </summary>
 		/// <param name="memoryMappedViewAccessor">The view accessor for the iRacing shared memory block.</param>
+		[Obsolete( "Use SetDataSource instead." )]
 		public void SetMemoryMappedViewAccessor( MemoryMappedViewAccessor memoryMappedViewAccessor )
 		{
-			this.memoryMappedViewAccessor = memoryMappedViewAccessor;
+			dataSource = new IRacingSdkMemoryMappedDataSource( memoryMappedViewAccessor );
 		}
 
 		/// <summary>
@@ -112,7 +122,7 @@ namespace IRSDKSharper
 		/// </summary>
 		public void Update()
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			var lastTickCount = TickCount;
 
@@ -121,12 +131,12 @@ namespace IRSDKSharper
 
 			for ( var i = 0; i < BufferCount; i++ )
 			{
-				var tickCount = memoryMappedViewAccessor.ReadInt32( 48 + ( i * 16 ) );
+				var tickCount = dataSource.ReadInt32( 48 + ( i * 16 ) );
 
 				if ( tickCount > TickCount )
 				{
 					TickCount = tickCount;
-					Offset = memoryMappedViewAccessor.ReadInt32( 48 + ( i * 16 ) + 4 );
+					Offset = dataSource.ReadInt32( 48 + ( i * 16 ) + 4 );
 				}
 			}
 
@@ -145,10 +155,10 @@ namespace IRSDKSharper
 				{
 					var varOffset = i * IRacingSdkDatum.Size;
 
-					var type = memoryMappedViewAccessor.ReadInt32( VarHeaderOffset + varOffset );
-					var offset = memoryMappedViewAccessor.ReadInt32( VarHeaderOffset + varOffset + 4 );
-					var count = memoryMappedViewAccessor.ReadInt32( VarHeaderOffset + varOffset + 8 );
-					var countAsTime = memoryMappedViewAccessor.ReadBoolean( VarHeaderOffset + varOffset + 12 );
+					var type = dataSource.ReadInt32( VarHeaderOffset + varOffset );
+					var offset = dataSource.ReadInt32( VarHeaderOffset + varOffset + 4 );
+					var count = dataSource.ReadInt32( VarHeaderOffset + varOffset + 8 );
+					var countAsTime = dataSource.ReadBoolean( VarHeaderOffset + varOffset + 12 );
 					var name = ReadString( VarHeaderOffset + varOffset + 16, nameArray );
 					var desc = ReadString( VarHeaderOffset + varOffset + 48, descArray );
 					var unit = ReadString( VarHeaderOffset + varOffset + 112, unitArray );
@@ -200,7 +210,7 @@ namespace IRSDKSharper
 		/// <returns><see langword="true"/> if a new payload was parsed successfully; otherwise, <see langword="false"/>.</returns>
 		public bool UpdateSessionInfo()
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			var sessionInfoLength = SessionInfoLength;
 
@@ -208,7 +218,7 @@ namespace IRSDKSharper
 			{
 				var bytes = new byte[ sessionInfoLength ];
 
-				memoryMappedViewAccessor.ReadArray( SessionInfoOffset, bytes, 0, sessionInfoLength );
+				dataSource.ReadArray( SessionInfoOffset, bytes, 0, sessionInfoLength );
 
 				SessionInfoYaml = FixInvalidYaml( bytes );
 
@@ -252,11 +262,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public char GetChar( string name, int index = 0 )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( name, index, IRacingSdkEnum.VarType.Char );
 
-			return memoryMappedViewAccessor.ReadChar( Offset + TelemetryDataProperties[ name ].Offset + index );
+			return dataSource.ReadChar( Offset + TelemetryDataProperties[ name ].Offset + index );
 		}
 
 		/// <summary>
@@ -268,11 +278,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public char GetChar( IRacingSdkDatum datum, int index = 0 )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( datum, index, IRacingSdkEnum.VarType.Char );
 
-			return memoryMappedViewAccessor.ReadChar( Offset + datum.Offset + index );
+			return dataSource.ReadChar( Offset + datum.Offset + index );
 		}
 
 		/// <summary>
@@ -286,11 +296,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetCharArray( string name, char[] array, int index, int count )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( name, index + count - 1, IRacingSdkEnum.VarType.Char );
 
-			return memoryMappedViewAccessor.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
+			return dataSource.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
 		}
 
 		/// <summary>
@@ -302,11 +312,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public bool GetBool( string name, int index = 0 )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( name, index, IRacingSdkEnum.VarType.Bool );
 
-			return memoryMappedViewAccessor.ReadBoolean( Offset + TelemetryDataProperties[ name ].Offset + index );
+			return dataSource.ReadBoolean( Offset + TelemetryDataProperties[ name ].Offset + index );
 		}
 
 		/// <summary>
@@ -318,11 +328,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public bool GetBool( IRacingSdkDatum datum, int index = 0 )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( datum, index, IRacingSdkEnum.VarType.Bool );
 
-			return memoryMappedViewAccessor.ReadBoolean( Offset + datum.Offset + index );
+			return dataSource.ReadBoolean( Offset + datum.Offset + index );
 		}
 
 		/// <summary>
@@ -336,11 +346,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetBoolArray( string name, bool[] array, int index, int count )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( name, index + count - 1, IRacingSdkEnum.VarType.Bool );
 
-			return memoryMappedViewAccessor.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
+			return dataSource.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
 		}
 
 		/// <summary>
@@ -354,11 +364,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetBoolArray( IRacingSdkDatum datum, bool[] array, int index, int count )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( datum, index + count - 1, IRacingSdkEnum.VarType.Bool );
 
-			return memoryMappedViewAccessor.ReadArray( Offset + datum.Offset, array, index, count );
+			return dataSource.ReadArray( Offset + datum.Offset, array, index, count );
 		}
 
 		/// <summary>
@@ -370,11 +380,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetInt( string name, int index = 0 )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( name, index, IRacingSdkEnum.VarType.Int );
 
-			return memoryMappedViewAccessor.ReadInt32( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
+			return dataSource.ReadInt32( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
 		}
 
 		/// <summary>
@@ -386,11 +396,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetInt( IRacingSdkDatum datum, int index = 0 )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( datum, index, IRacingSdkEnum.VarType.Int );
 
-			return memoryMappedViewAccessor.ReadInt32( Offset + datum.Offset + index * 4 );
+			return dataSource.ReadInt32( Offset + datum.Offset + index * 4 );
 		}
 
 		/// <summary>
@@ -404,11 +414,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetIntArray( string name, int[] array, int index, int count )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( name, index + count - 1, IRacingSdkEnum.VarType.Int );
 
-			return memoryMappedViewAccessor.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
+			return dataSource.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
 		}
 
 		/// <summary>
@@ -422,11 +432,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetIntArray( IRacingSdkDatum datum, int[] array, int index, int count )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( datum, index + count - 1, IRacingSdkEnum.VarType.Int );
 
-			return memoryMappedViewAccessor.ReadArray( Offset + datum.Offset, array, index, count );
+			return dataSource.ReadArray( Offset + datum.Offset, array, index, count );
 		}
 
 		/// <summary>
@@ -438,11 +448,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public uint GetBitField( string name, int index = 0 )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( name, index, IRacingSdkEnum.VarType.BitField );
 
-			return memoryMappedViewAccessor.ReadUInt32( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
+			return dataSource.ReadUInt32( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
 		}
 
 		/// <summary>
@@ -454,11 +464,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public uint GetBitField( IRacingSdkDatum datum, int index = 0 )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( datum, index, IRacingSdkEnum.VarType.BitField );
 
-			return memoryMappedViewAccessor.ReadUInt32( Offset + datum.Offset + index * 4 );
+			return dataSource.ReadUInt32( Offset + datum.Offset + index * 4 );
 		}
 
 		/// <summary>
@@ -472,11 +482,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetBitFieldArray( string name, uint[] array, int index, int count )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( name, index + count - 1, IRacingSdkEnum.VarType.BitField );
 
-			return memoryMappedViewAccessor.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
+			return dataSource.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
 		}
 
 		/// <summary>
@@ -490,11 +500,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetBitFieldArray( IRacingSdkDatum datum, uint[] array, int index, int count )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( datum, index + count - 1, IRacingSdkEnum.VarType.BitField );
 
-			return memoryMappedViewAccessor.ReadArray( Offset + datum.Offset, array, index, count );
+			return dataSource.ReadArray( Offset + datum.Offset, array, index, count );
 		}
 
 		/// <summary>
@@ -506,11 +516,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public float GetFloat( string name, int index = 0 )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( name, index, IRacingSdkEnum.VarType.Float );
 
-			return memoryMappedViewAccessor.ReadSingle( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
+			return dataSource.ReadSingle( Offset + TelemetryDataProperties[ name ].Offset + index * 4 );
 		}
 
 		/// <summary>
@@ -522,11 +532,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public float GetFloat( IRacingSdkDatum datum, int index = 0 )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( datum, index, IRacingSdkEnum.VarType.Float );
 
-			return memoryMappedViewAccessor.ReadSingle( Offset + datum.Offset + index * 4 );
+			return dataSource.ReadSingle( Offset + datum.Offset + index * 4 );
 		}
 
 		/// <summary>
@@ -540,11 +550,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetFloatArray( string name, float[] array, int index, int count )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( name, index + count - 1, IRacingSdkEnum.VarType.Float );
 
-			return memoryMappedViewAccessor.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
+			return dataSource.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
 		}
 
 		/// <summary>
@@ -558,11 +568,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetFloatArray( IRacingSdkDatum datum, float[] array, int index, int count )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( datum, index + count - 1, IRacingSdkEnum.VarType.Float );
 
-			return memoryMappedViewAccessor.ReadArray( Offset + datum.Offset, array, index, count );
+			return dataSource.ReadArray( Offset + datum.Offset, array, index, count );
 		}
 
 		/// <summary>
@@ -574,11 +584,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public double GetDouble( string name, int index = 0 )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( name, index, IRacingSdkEnum.VarType.Double );
 
-			return memoryMappedViewAccessor.ReadDouble( Offset + TelemetryDataProperties[ name ].Offset + index * 8 );
+			return dataSource.ReadDouble( Offset + TelemetryDataProperties[ name ].Offset + index * 8 );
 		}
 
 		/// <summary>
@@ -590,11 +600,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public double GetDouble( IRacingSdkDatum datum, int index = 0 )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( datum, index, IRacingSdkEnum.VarType.Double );
 
-			return memoryMappedViewAccessor.ReadDouble( Offset + datum.Offset + index * 8 );
+			return dataSource.ReadDouble( Offset + datum.Offset + index * 8 );
 		}
 
 		/// <summary>
@@ -608,11 +618,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetDoubleArray( string name, double[] array, int index, int count )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( name, index + count - 1, IRacingSdkEnum.VarType.Double );
 
-			return memoryMappedViewAccessor.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
+			return dataSource.ReadArray( Offset + TelemetryDataProperties[ name ].Offset, array, index, count );
 		}
 
 		/// <summary>
@@ -626,11 +636,11 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public int GetDoubleArray( IRacingSdkDatum datum, double[] array, int index, int count )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( datum, index + count - 1, IRacingSdkEnum.VarType.Double );
 
-			return memoryMappedViewAccessor.ReadArray( Offset + datum.Offset, array, index, count );
+			return dataSource.ReadArray( Offset + datum.Offset, array, index, count );
 		}
 
 		/// <summary>
@@ -642,7 +652,7 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public object GetValue( string name, int index = 0 )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( name, index, null );
 
@@ -650,12 +660,12 @@ namespace IRSDKSharper
 
 			switch ( iRacingSdkDatum.VarType )
 			{
-				case IRacingSdkEnum.VarType.Char: return memoryMappedViewAccessor.ReadChar( Offset + iRacingSdkDatum.Offset + index );
-				case IRacingSdkEnum.VarType.Bool: return memoryMappedViewAccessor.ReadBoolean( Offset + iRacingSdkDatum.Offset + index );
-				case IRacingSdkEnum.VarType.Int: return memoryMappedViewAccessor.ReadInt32( Offset + iRacingSdkDatum.Offset + index * 4 );
-				case IRacingSdkEnum.VarType.BitField: return memoryMappedViewAccessor.ReadUInt32( Offset + iRacingSdkDatum.Offset + index * 4 );
-				case IRacingSdkEnum.VarType.Float: return memoryMappedViewAccessor.ReadSingle( Offset + iRacingSdkDatum.Offset + index * 4 );
-				case IRacingSdkEnum.VarType.Double: return memoryMappedViewAccessor.ReadDouble( Offset + iRacingSdkDatum.Offset + index * 4 );
+				case IRacingSdkEnum.VarType.Char: return dataSource.ReadChar( Offset + iRacingSdkDatum.Offset + index );
+				case IRacingSdkEnum.VarType.Bool: return dataSource.ReadBoolean( Offset + iRacingSdkDatum.Offset + index );
+				case IRacingSdkEnum.VarType.Int: return dataSource.ReadInt32( Offset + iRacingSdkDatum.Offset + index * 4 );
+				case IRacingSdkEnum.VarType.BitField: return dataSource.ReadUInt32( Offset + iRacingSdkDatum.Offset + index * 4 );
+				case IRacingSdkEnum.VarType.Float: return dataSource.ReadSingle( Offset + iRacingSdkDatum.Offset + index * 4 );
+				case IRacingSdkEnum.VarType.Double: return dataSource.ReadDouble( Offset + iRacingSdkDatum.Offset + index * 4 );
 				default: throw new Exception( "Unexpected type!" );
 			}
 		}
@@ -669,18 +679,18 @@ namespace IRSDKSharper
 		[MethodImpl( MethodImplOptions.AggressiveInlining )]
 		public object GetValue( IRacingSdkDatum datum, int index = 0 )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
 			Validate( datum, index, null );
 
 			switch ( datum.VarType )
 			{
-				case IRacingSdkEnum.VarType.Char: return memoryMappedViewAccessor.ReadChar( Offset + datum.Offset + index );
-				case IRacingSdkEnum.VarType.Bool: return memoryMappedViewAccessor.ReadBoolean( Offset + datum.Offset + index );
-				case IRacingSdkEnum.VarType.Int: return memoryMappedViewAccessor.ReadInt32( Offset + datum.Offset + index * 4 );
-				case IRacingSdkEnum.VarType.BitField: return memoryMappedViewAccessor.ReadUInt32( Offset + datum.Offset + index * 4 );
-				case IRacingSdkEnum.VarType.Float: return memoryMappedViewAccessor.ReadSingle( Offset + datum.Offset + index * 4 );
-				case IRacingSdkEnum.VarType.Double: return memoryMappedViewAccessor.ReadDouble( Offset + datum.Offset + index * 4 );
+				case IRacingSdkEnum.VarType.Char: return dataSource.ReadChar( Offset + datum.Offset + index );
+				case IRacingSdkEnum.VarType.Bool: return dataSource.ReadBoolean( Offset + datum.Offset + index );
+				case IRacingSdkEnum.VarType.Int: return dataSource.ReadInt32( Offset + datum.Offset + index * 4 );
+				case IRacingSdkEnum.VarType.BitField: return dataSource.ReadUInt32( Offset + datum.Offset + index * 4 );
+				case IRacingSdkEnum.VarType.Float: return dataSource.ReadSingle( Offset + datum.Offset + index * 4 );
+				case IRacingSdkEnum.VarType.Double: return dataSource.ReadDouble( Offset + datum.Offset + index * 4 );
 				default: throw new Exception( "Unexpected type!" );
 			}
 		}
@@ -720,9 +730,9 @@ namespace IRSDKSharper
 
 		private string ReadString( int offset, byte[] buffer )
 		{
-			Debug.Assert( memoryMappedViewAccessor != null );
+			Debug.Assert( dataSource != null );
 
-			memoryMappedViewAccessor.ReadArray( offset, buffer, 0, buffer.Length );
+			dataSource.ReadArray( offset, buffer, 0, buffer.Length );
 
 			return encoding.GetString( buffer ).TrimEnd( '\0' );
 		}

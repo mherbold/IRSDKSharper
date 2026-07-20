@@ -1,13 +1,9 @@
 ﻿
 using System;
 using System.Diagnostics;
-using System.IO;
-using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-
-using Microsoft.Win32.SafeHandles;
 
 namespace IRSDKSharper
 {
@@ -16,14 +12,17 @@ namespace IRSDKSharper
 	/// </summary>
 	public class IRacingSdk
 	{
-		private const string SimulatorMemoryMappedFileName = "Local\\IRSDKMemMapFileName";
-		private const string SimulatorDataValidEventName = "Local\\IRSDKDataValidEvent";
 		private const string SimulatorBroadcastMessageName = "IRSDK_BROADCASTMSG";
 
 		/// <summary>
 		/// Gets the current telemetry and session data cache.
 		/// </summary>
 		public readonly IRacingSdkData Data;
+
+		/// <summary>
+		/// Gets the data source that iRacing-formatted data is being read from.
+		/// </summary>
+		public IRacingSdkDataSource DataSource { get; private set; }
 
 		/// <summary>
 		/// Gets a value indicating whether the background connection logic has been started.
@@ -124,10 +123,6 @@ namespace IRSDKSharper
 		private bool telemetryDataLoopRunning = false;
 		private bool sessionInfoLoopRunning = false;
 
-		private MemoryMappedFile simulatorMemoryMappedFile = null;
-		private MemoryMappedViewAccessor simulatorMemoryMappedFileViewAccessor = null;
-
-		private AutoResetEvent simulatorAutoResetEvent = null;
 		private AutoResetEvent sessionInfoAutoResetEvent = null;
 
 		private int lastTelemetryDataUpdate = -1;
@@ -161,14 +156,31 @@ namespace IRSDKSharper
 		/// <see langword="true"/> to ignore unmatched properties during YAML deserialization; otherwise unmatched properties will cause parsing failures.
 		/// </param>
 		/// <param name="enableEventSystem"><see langword="true"/> to create the optional <see cref="EventSystem"/> instance.</param>
-		public IRacingSdk( bool throwYamlExceptions = false, bool ignoreUnmatchedYamlProperties = true, bool enableEventSystem = false )
+		/// <param name="dataSource">The data source to read iRacing-formatted data from, or <see langword="null"/> to read from the live iRacing simulator's shared memory.</param>
+		public IRacingSdk( bool throwYamlExceptions = false, bool ignoreUnmatchedYamlProperties = true, bool enableEventSystem = false, IRacingSdkDataSource dataSource = null )
 		{
 			Data = new IRacingSdkData( throwYamlExceptions, ignoreUnmatchedYamlProperties );
+
+			DataSource = dataSource ?? new IRacingSdkMemoryMappedDataSource();
 
 			if ( enableEventSystem )
 			{
 				EventSystem = new EventSystem( this );
 			}
+		}
+
+		/// <summary>
+		/// Replaces the data source that iRacing-formatted data is read from. The SDK must be stopped when this is called.
+		/// </summary>
+		/// <param name="dataSource">The new data source, or <see langword="null"/> to read from the live iRacing simulator's shared memory.</param>
+		public void SetDataSource( IRacingSdkDataSource dataSource )
+		{
+			if ( IsStarted )
+			{
+				throw new InvalidOperationException( "The data source cannot be changed while IRSDKSharper is started." );
+			}
+
+			DataSource = dataSource ?? new IRacingSdkMemoryMappedDataSource();
 		}
 
 		/// <summary>
@@ -248,13 +260,11 @@ namespace IRSDKSharper
 						}
 					}
 
+					DataSource.Close();
+
 					IsStarted = false;
 					IsConnected = false;
 
-					simulatorMemoryMappedFile = null;
-					simulatorMemoryMappedFileViewAccessor = null;
-
-					simulatorAutoResetEvent = null;
 					sessionInfoAutoResetEvent = null;
 
 					lastTelemetryDataUpdate = -1;
@@ -495,82 +505,33 @@ namespace IRSDKSharper
 
 				while ( keepThreadsAlive == 1 )
 				{
-					if ( simulatorMemoryMappedFile == null )
+					if ( DataSource.TryOpen() )
 					{
-						try
+						Log( "The data source has been opened." );
+
+						Data.SetDataSource( DataSource );
+
+						sessionInfoAutoResetEvent = new AutoResetEvent( false );
+
+						var thread = new Thread( SessionInfoLoop );
+
+						thread.Start();
+
+						while ( !sessionInfoLoopRunning )
 						{
-							simulatorMemoryMappedFile = MemoryMappedFile.OpenExisting( SimulatorMemoryMappedFileName );
+							Thread.Sleep( 0 );
 						}
-						catch ( FileNotFoundException )
+
+						thread = new Thread( TelemetryDataLoop );
+
+						thread.Start();
+
+						while ( !telemetryDataLoopRunning )
 						{
+							Thread.Sleep( 0 );
 						}
-					}
 
-					if ( simulatorMemoryMappedFile != null )
-					{
-						Log( "simulatorMemoryMappedFile != null" );
-
-						if ( simulatorMemoryMappedFileViewAccessor == null )
-						{
-							simulatorMemoryMappedFileViewAccessor = simulatorMemoryMappedFile.CreateViewAccessor();
-
-							if ( simulatorMemoryMappedFileViewAccessor == null )
-							{
-								throw new Exception( "Failed to create memory mapped view accessor." );
-							}
-							else
-							{
-								Data.SetMemoryMappedViewAccessor( simulatorMemoryMappedFileViewAccessor );
-							}
-						}
-					}
-
-					if ( simulatorMemoryMappedFileViewAccessor != null )
-					{
-						Log( "simulatorMemoryMappedFileViewAccessor != null" );
-
-						var simulatorDataValidEventHandle = WinApi.OpenEvent( WinApi.EVENT_ALL_ACCESS, false, SimulatorDataValidEventName );
-
-						if ( simulatorDataValidEventHandle == (IntPtr) null )
-						{
-							var errorCode = Marshal.GetLastWin32Error();
-
-							if ( errorCode != WinApi.ERROR_FILE_NOT_FOUND )
-							{
-								Marshal.ThrowExceptionForHR( errorCode, IntPtr.Zero );
-							}
-						}
-						else
-						{
-							Log( "hSimulatorDataValidEvent != null" );
-
-							simulatorAutoResetEvent = new AutoResetEvent( false )
-							{
-								SafeWaitHandle = new SafeWaitHandle( simulatorDataValidEventHandle, true )
-							};
-
-							sessionInfoAutoResetEvent = new AutoResetEvent( false );
-
-							var thread = new Thread( SessionInfoLoop );
-
-							thread.Start();
-
-							while ( !sessionInfoLoopRunning )
-							{
-								Thread.Sleep( 0 );
-							}
-
-							thread = new Thread( TelemetryDataLoop );
-
-							thread.Start();
-
-							while ( !telemetryDataLoopRunning )
-							{
-								Thread.Sleep( 0 );
-							}
-
-							break;
-						}
+						break;
 					}
 
 					Thread.Sleep( ConnectionCheckIntervalInMS );
@@ -639,13 +600,13 @@ namespace IRSDKSharper
 
 				while ( keepThreadsAlive == 1 )
 				{
-					var signalReceived = simulatorAutoResetEvent?.WaitOne( 3000 ) ?? false;
+					var signalReceived = DataSource.WaitForDataReady( 3000 );
 
 					if ( signalReceived )
 					{
 						if ( !IsConnected )
 						{
-							Log( "The iRacing simulator is running." );
+							Log( "The data source is producing data." );
 
 							IsConnected = true;
 
@@ -693,7 +654,7 @@ namespace IRSDKSharper
 					{
 						if ( IsConnected )
 						{
-							Log( "The iRacing simulator is no longer running." );
+							Log( "The data source has stopped producing data." );
 
 							IsConnected = false;
 

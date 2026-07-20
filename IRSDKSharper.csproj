@@ -14,7 +14,7 @@
     <RepositoryUrl>https://github.com/mherbold/IRSDKSharper</RepositoryUrl>
     <PackageTags>iRacing, IRSDK</PackageTags>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <Version>1.1.10</Version>
+    <Version>1.2.0</Version>
     <Title>IRSDKSharper</Title>
     <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
